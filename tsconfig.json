@@ -1,8 +1,14 @@
 {
-	"extends": "$app/tsconfig",
+	"extends": "./.svelte-kit/tsconfig.json",
 	"compilerOptions": {
-		"strict": true,
-		"types": ["$app/types", "node"]
-	},
-	"include": ["src", "vite.config.ts", "playwright.config.ts", "drizzle.config.ts"]
+		"allowJs": true,
+		"checkJs": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true,
+		"skipLibCheck": true,
+		"sourceMap": true,
+		"strict": true
+	}
+	// Path aliases are handled by https://svelte.dev/docs/kit/configuration#alias
 }

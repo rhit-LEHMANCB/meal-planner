@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
-import { ANTHROPIC_API_KEY } from '$app/env/private';
+import { ANTHROPIC_API_KEY } from '$env/static/private';
 import { parsedRecipeSchema, type ParsedRecipe } from './recipe-schema';
 
 // Parsing is a cheap structured-extraction task. Move up a model tier only for messy photos.

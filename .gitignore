@@ -28,3 +28,6 @@ test-results
 /.firebase
 *-debug.log
 *-firebase-adminsdk-*.json
+
+# QA credentials for the dev-lifecycle skill
+.env.qa

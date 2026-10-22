@@ -5,7 +5,7 @@ import {
 	PUBLIC_FB_APP_ID,
 	PUBLIC_FB_AUTH_DOMAIN,
 	PUBLIC_FB_PROJECT_ID
-} from '$app/env/public';
+} from '$env/static/public';
 
 const app =
 	getApps()[0] ??

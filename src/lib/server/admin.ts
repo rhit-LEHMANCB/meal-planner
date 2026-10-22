@@ -1,7 +1,7 @@
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { FB_CLIENT_EMAIL, FB_PRIVATE_KEY } from '$app/env/private';
-import { PUBLIC_FB_PROJECT_ID } from '$app/env/public';
+import { FB_CLIENT_EMAIL, FB_PRIVATE_KEY } from '$env/static/private';
+import { PUBLIC_FB_PROJECT_ID } from '$env/static/public';
 
 if (getApps().length === 0) {
 	const { privateKey } = JSON.parse(FB_PRIVATE_KEY);

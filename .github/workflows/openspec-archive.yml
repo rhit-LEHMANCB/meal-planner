@@ -1,0 +1,66 @@
+name: Archive OpenSpec changes after production merge
+'on':
+  push:
+    branches:
+      - production
+  workflow_dispatch:
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+concurrency:
+  group: openspec-archive
+  cancel-in-progress: false
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install OpenSpec
+        run: npm install -g @fission-ai/openspec@1.14.1
+      - name: Archive shipped changes
+        id: archive
+        run: |
+          git switch -c "archive-specs/${GITHUB_SHA::7}-${GITHUB_RUN_ID}"
+          .github/scripts/archive-shipped-changes.sh "$GITHUB_SHA" "$RUNNER_TEMP/summary.md"
+      - name: Validate specs
+        if: steps.archive.outputs.archived != '0'
+        run: openspec validate --specs
+      - name: Open the archive PR into develop and merge it when its checks pass
+        if: steps.archive.outputs.archived != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="$(git branch --show-current)"
+          git push origin "$branch"
+          url="$(gh pr create --base develop --head "$branch" \
+            --title "Archive OpenSpec changes (release ${GITHUB_SHA::7})" \
+            --body-file "$RUNNER_TEMP/summary.md")"
+          echo "Opened $url"
+          # develop requires the verify check. GitHub starts the pull_request run for
+          # a PR opened with the built-in token but holds it at "action_required" until someone approves
+          # it, so approve it here. Without that the required checks never run and the PR cannot merge.
+          run_id=""
+          for _ in $(seq 1 24); do
+            run_id="$(gh run list --workflow firebase-hosting-pull-request.yml --branch "$branch" \
+              --event pull_request --json databaseId,conclusion \
+              --jq '[.[] | select(.conclusion == "action_required")][0].databaseId // empty')"
+            [ -n "$run_id" ] && break
+            sleep 5
+          done
+          if [ -n "$run_id" ]; then
+            gh api -X POST "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/approve" ||
+              echo "::warning::Could not approve the checks run for $url. Open the pull request and click Approve and run workflows."
+          else
+            echo "::warning::No pending checks run found for $url. If its checks do not start, click Approve and run workflows on the pull request."
+          fi
+          # Merge as soon as the required checks pass.
+          if ! gh pr merge "$url" --auto --merge; then
+            echo "::warning::Could not turn on auto-merge for $url. Once its checks pass, merge it by hand."
+          fi
