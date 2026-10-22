@@ -1,0 +1,176 @@
+import {
+	boolean,
+	date,
+	index,
+	integer,
+	numeric,
+	pgEnum,
+	pgTable,
+	text,
+	timestamp,
+	uuid
+} from 'drizzle-orm/pg-core';
+
+// `user_id` columns hold the Firebase Auth uid. Every query on user data must filter by it.
+
+export const mealSlot = pgEnum('meal_slot', ['breakfast', 'lunch', 'dinner', 'snack']);
+
+/** Nutrition reference data. `user_id` null = shared (USDA / Open Food Facts import). */
+export const foods = pgTable(
+	'foods',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		userId: text('user_id'),
+		name: text('name').notNull(),
+		source: text('source').notNull().default('custom'), // 'usda' | 'off' | 'custom'
+		sourceId: text('source_id'),
+		kcalPer100g: numeric('kcal_per_100g', { precision: 7, scale: 2 }).notNull(),
+		proteinPer100g: numeric('protein_per_100g', { precision: 7, scale: 2 }).notNull(),
+		carbsPer100g: numeric('carbs_per_100g', { precision: 7, scale: 2 }).notNull(),
+		fatPer100g: numeric('fat_per_100g', { precision: 7, scale: 2 }).notNull(),
+		aisle: text('aisle')
+	},
+	(t) => [index('foods_name_idx').on(t.name)]
+);
+
+/** Unit conversions per food: 1 cup of flour = 120 g, 1 each onion = 110 g. */
+export const foodUnits = pgTable('food_units', {
+	id: uuid('id').primaryKey().defaultRandom(),
+	foodId: uuid('food_id')
+		.notNull()
+		.references(() => foods.id, { onDelete: 'cascade' }),
+	unit: text('unit').notNull(),
+	grams: numeric('grams', { precision: 9, scale: 2 }).notNull()
+});
+
+export const recipes = pgTable(
+	'recipes',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		userId: text('user_id').notNull(),
+		title: text('title').notNull(),
+		servings: integer('servings').notNull(),
+		totalMinutes: integer('total_minutes'),
+		sourceUrl: text('source_url'),
+		instructions: text('instructions').array().notNull().default([]),
+		createdAt: timestamp('created_at').notNull().defaultNow()
+	},
+	(t) => [index('recipes_user_idx').on(t.userId)]
+);
+
+export const recipeIngredients = pgTable('recipe_ingredients', {
+	id: uuid('id').primaryKey().defaultRandom(),
+	recipeId: uuid('recipe_id')
+		.notNull()
+		.references(() => recipes.id, { onDelete: 'cascade' }),
+	foodId: uuid('food_id').references(() => foods.id),
+	rawText: text('raw_text').notNull(),
+	quantity: numeric('quantity', { precision: 9, scale: 3 }),
+	unit: text('unit'),
+	note: text('note'),
+	/** 'matched' | 'check' | 'skipped': drives the chip on the import review screen. */
+	matchStatus: text('match_status').notNull().default('check')
+});
+
+export const mealPlans = pgTable(
+	'meal_plans',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		userId: text('user_id').notNull(),
+		weekStart: date('week_start').notNull()
+	},
+	(t) => [index('meal_plans_user_week_idx').on(t.userId, t.weekStart)]
+);
+
+/** A cooked batch that later meals can draw leftovers from. */
+export const leftoverBatches = pgTable('leftover_batches', {
+	id: uuid('id').primaryKey().defaultRandom(),
+	userId: text('user_id').notNull(),
+	recipeId: uuid('recipe_id')
+		.notNull()
+		.references(() => recipes.id),
+	cookedOn: date('cooked_on').notNull(),
+	servingsCooked: integer('servings_cooked').notNull(),
+	servingsRemaining: integer('servings_remaining').notNull(),
+	eatBy: date('eat_by')
+});
+
+export const plannedMeals = pgTable(
+	'planned_meals',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		planId: uuid('plan_id')
+			.notNull()
+			.references(() => mealPlans.id, { onDelete: 'cascade' }),
+		date: date('date').notNull(),
+		slot: mealSlot('slot').notNull(),
+		recipeId: uuid('recipe_id')
+			.notNull()
+			.references(() => recipes.id),
+		servings: integer('servings').notNull().default(1),
+		/** Leftover meals draw from a batch and add nothing to the grocery list. */
+		isLeftover: boolean('is_leftover').notNull().default(false),
+		leftoverBatchId: uuid('leftover_batch_id').references(() => leftoverBatches.id)
+	},
+	(t) => [index('planned_meals_plan_idx').on(t.planId)]
+);
+
+export const groceryLists = pgTable('grocery_lists', {
+	id: uuid('id').primaryKey().defaultRandom(),
+	planId: uuid('plan_id')
+		.notNull()
+		.references(() => mealPlans.id, { onDelete: 'cascade' })
+});
+
+export const groceryItems = pgTable('grocery_items', {
+	id: uuid('id').primaryKey().defaultRandom(),
+	listId: uuid('list_id')
+		.notNull()
+		.references(() => groceryLists.id, { onDelete: 'cascade' }),
+	foodId: uuid('food_id').references(() => foods.id),
+	name: text('name').notNull(),
+	quantity: numeric('quantity', { precision: 9, scale: 3 }),
+	unit: text('unit'),
+	aisle: text('aisle'),
+	checked: boolean('checked').notNull().default(false),
+	/** Meals that need this item, shown as "Turkey chili, Fish tacos". */
+	forMeals: text('for_meals').array().notNull().default([])
+});
+
+export const pantryItems = pgTable('pantry_items', {
+	id: uuid('id').primaryKey().defaultRandom(),
+	userId: text('user_id').notNull(),
+	foodId: uuid('food_id')
+		.notNull()
+		.references(() => foods.id),
+	/** Staples (oil, salt) never go on the grocery list. */
+	isStaple: boolean('is_staple').notNull().default(false)
+});
+
+/** Macros are copied at log time so editing a recipe later does not rewrite history. */
+export const foodLog = pgTable(
+	'food_log',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		userId: text('user_id').notNull(),
+		date: date('date').notNull(),
+		slot: mealSlot('slot'),
+		label: text('label').notNull(),
+		recipeId: uuid('recipe_id').references(() => recipes.id),
+		foodId: uuid('food_id').references(() => foods.id),
+		servings: numeric('servings', { precision: 6, scale: 2 }).notNull().default('1'),
+		kcal: numeric('kcal', { precision: 8, scale: 2 }).notNull(),
+		proteinG: numeric('protein_g', { precision: 8, scale: 2 }).notNull(),
+		carbsG: numeric('carbs_g', { precision: 8, scale: 2 }).notNull(),
+		fatG: numeric('fat_g', { precision: 8, scale: 2 }).notNull()
+	},
+	(t) => [index('food_log_user_date_idx').on(t.userId, t.date)]
+);
+
+export const nutritionGoals = pgTable('nutrition_goals', {
+	userId: text('user_id').primaryKey(),
+	kcal: integer('kcal').notNull().default(2000),
+	proteinG: integer('protein_g').notNull().default(140),
+	carbsG: integer('carbs_g').notNull().default(230),
+	fatG: integer('fat_g').notNull().default(70)
+});

@@ -1,0 +1,38 @@
+name: Deploy to Firebase Hosting on merge
+'on':
+  push:
+    branches:
+      - production
+      - develop
+jobs:
+  build_and_deploy:
+    concurrency:
+      group: deploy-${{ github.ref_name }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    # One GitHub environment per branch (develop, production) holds that branch's secrets and vars.
+    environment:
+      name: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          channelId: live
+          projectId: '${{ vars.FB_PROJECT_ID }}'
+        env:
+          FIREBASE_CLI_EXPERIMENTS: webframeworks
+          NODE_OPTIONS: '--max_old_space_size=4096'
+          DATABASE_URL: '${{ secrets.DATABASE_URL }}'
+          ANTHROPIC_API_KEY: '${{ secrets.ANTHROPIC_API_KEY }}'
+          FB_CLIENT_EMAIL: '${{ secrets.FB_CLIENT_EMAIL }}'
+          FB_PRIVATE_KEY: '${{ secrets.FB_PRIVATE_KEY }}'
+          PUBLIC_FB_PROJECT_ID: '${{ vars.FB_PROJECT_ID }}'
+          PUBLIC_FB_API_KEY: '${{ secrets.FB_API_KEY }}'
+          PUBLIC_FB_AUTH_DOMAIN: '${{ secrets.FB_AUTH_DOMAIN }}'
+          PUBLIC_FB_APP_ID: '${{ secrets.FB_APP_ID }}'

@@ -1,0 +1,24 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+
+/* Palette from the design mockups: herb green, tomato accent, warm leftover amber. */
+@theme {
+	--font-display: 'Bricolage Grotesque', sans-serif;
+	--font-sans: 'DM Sans', system-ui, sans-serif;
+	--color-ground: #f4f6f0;
+	--color-ink: #1b2a22;
+	--color-muted: #52645a;
+	--color-line: #dde3da;
+	--color-herb: #2f6b4f;
+	--color-herb-dark: #1f4d38;
+	--color-herb-tint: #eaf1e6;
+	--color-tomato: #d9482b;
+	--color-leftover: #b7791f;
+	--color-leftover-tint: #fbefd9;
+}
+
+body {
+	background: var(--color-ground);
+	color: var(--color-ink);
+	font-family: var(--font-sans);
+}
