@@ -54,7 +54,7 @@ Firebase Auth already exists for sign-in only; `src/hooks.server.ts` verifies a 
 
 ## Migration Plan
 
-1. Add `position integer not null default 0` to `recipe_ingredients` (additive; old code is unaffected) and apply it to Neon before the rollout.
+1. Add `position integer not null default 0` to `recipe_ingredients` (additive, so old code is unaffected) as a committed migration. Merging to `develop` runs it on the Neon `dev` branch through the migrate workflow; merging to `production` runs it on the real database, in parallel with the App Hosting rollout.
 2. Create `ALLOWED_EMAILS` in Secret Manager, grant the `meal-planner` backend access, and reference it in `apphosting.yaml`.
 3. In the Firebase console: enable Email/Password, disable "Enable create (sign-up)", add the App Hosting domain to authorized domains.
 4. Merge to `production`; App Hosting rolls out. Rollback is the previous rollout; the new column is harmless to old code.
