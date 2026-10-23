@@ -30,16 +30,26 @@ Mockups: https://claude.ai/artifact/LZ2eJMT726E4PtF5XzNMd5 (weekly plan, import 
 
 ## Deployment
 
-Early development: there is a single environment, production. No separate dev site yet.
+Early development: one deployed site (production) and a separate dev database branch. No dev site yet.
 
 - Firebase project id: `lehman-meals`
 - Neon: project `plain-wind-36684347` (org `org-green-unit-56216445`), branch `production`. `neon.ts` is the Neon config; `neon env pull` refreshes `.env`.
 - `DATABASE_URL` is the pooled string the app uses; `DATABASE_URL_UNPOOLED` is the direct one drizzle-kit uses for migrations.
-- Schema changes: edit `schema.ts`, then `npm run db:generate` and `npm run db:migrate` (migrations are committed under `drizzle/`). `npm run db:smoke` proves the connection with a write, read and delete.
+- Neon branches: `production` (default, the real database) and `dev` (a child of production with no expiry, for rehearsing migrations and running integration tests). Reset `dev` from production with `neon branches reset dev --parent --project-id plain-wind-36684347` when it drifts. `neon.ts` gives other new branches a 7 day TTL.
+- `npm run db:smoke` proves the connection with a write, read and delete.
 - `/api/health` returns `{"db":"ok"}` when the database is reachable.
-- Because there is no dev environment, run QA and tests against a Neon branch (`neon checkout <name> --create`), never the `production` branch, and do not run `dev-lifecycle` QA until a dev site exists.
+- There is still no dev _site_, only the dev database branch. Point integration tests and QA at the `dev` Neon branch, never `production`, and do not run `dev-lifecycle` QA until a dev backend exists.
 - App Hosting backend id: `meal-planner`, live branch `production`. Secrets (`DATABASE_URL`, `ANTHROPIC_API_KEY`, `FB_CLIENT_EMAIL`, `FB_PRIVATE_KEY`) live in Cloud Secret Manager (`firebase apphosting:secrets:set <NAME>`), not in GitHub. There is no deploy GitHub Action: App Hosting builds and rolls out itself. GitHub Actions only runs `CI` and the OpenSpec archive.
 - `dev-lifecycle` still waits on a `firebase-hosting-merge.yml` run for the dev deploy. That workflow no longer exists, so rework that stage when a dev backend is added.
+
+## Migrations
+
+Schema changes: edit `schema.ts`, run `npm run db:generate`, commit the new files under `drizzle/`. Never edit an applied migration.
+
+- Merging to `develop` runs `.github/workflows/migrate.yml` against the Neon `dev` branch. Merging to `production` runs it against production. Each GitHub environment (`develop`, `production`) holds its own `DATABASE_URL_UNPOOLED` secret (the direct connection).
+- Migrations must be additive. App Hosting starts rolling out new code on the same push, so for a few minutes old code runs on the new schema. `npm run check:migrations` (also in CI) rejects drops, renames, type changes, `SET NOT NULL`, and `NOT NULL` columns without a default. To remove something, stop using it in one change and drop it in a later one, with `-- allow-destructive: <reason>` as the first line of that migration file.
+- Because changes flow develop then production, every migration has already run on `dev` before it reaches production.
+- Run one locally against dev: `DATABASE_URL_UNPOOLED=$(neon connection-string dev --project-id plain-wind-36684347) npx drizzle-kit migrate`.
 
 ## Process
 

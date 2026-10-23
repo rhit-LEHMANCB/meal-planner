@@ -21,7 +21,8 @@
 		"db:studio": "drizzle-kit studio",
 		"check:server": "node scripts/check-server-imports.mjs",
 		"db:smoke": "tsx scripts/db-smoke.ts",
-		"start": "node build"
+		"start": "node build",
+		"check:migrations": "node scripts/check-migrations.mjs"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
