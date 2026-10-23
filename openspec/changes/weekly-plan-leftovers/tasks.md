@@ -27,13 +27,13 @@
 
 ## 3. Food store and search endpoint
 
-- [ ] 3.1 Add `src/lib/server/foods.ts` `makeFoodStore(db)`:
+- [x] 3.1 Add `src/lib/server/foods.ts` `makeFoodStore(db)`:
   - `search(userId, q)`: own and shared foods, max 20, own first, case-insensitive with escaped LIKE
   - `get(userId, id)` with units (`g` plus `food_units`)
   - `create(userId, input)`
 
   Verify `foods.integration.spec.ts` on the dev branch covers own vs shared vs another user's food, and the 20-result cap.
-- [ ] 3.2 Add `src/routes/plan/foods/+server.ts` (GET `?q=`, `requireUserId`, JSON). Verify a signed-out request redirects to sign-in and a signed-in request returns only visible foods (covered by the integration spec through the store plus a manual `curl` in dev).
+- [x] 3.2 Add `src/routes/plan/foods/+server.ts` (GET `?q=`, `requireUserId`, JSON). Verify a signed-out request redirects to sign-in and a signed-in request returns only visible foods (covered by the integration spec through the store plus a manual `curl` in dev).
 
 ## 4. Plan store
 

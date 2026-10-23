@@ -1,7 +1,7 @@
 # Lifecycle: weekly-plan-leftovers
 
 - Branch: `weekly-plan-leftovers`
-- Stage: 2 Propose + preflight
+- Stage: 3 Implement
 - Review round: 0 of 3
 - QA cycle: 0 of 3
 - Started: 2026-10-23
@@ -73,8 +73,8 @@ Requested extra: a Claude Design pass for this feature during the interview (use
 
 ## Gate A
 
-Approved: no
-Accepted preflight gaps: none
+Approved: yes, 2026-10-23, by the user in chat
+Accepted preflight gaps: local Node 22 instead of 24 (CI runs 24); `.env.qa` mode 600 not enforceable on Windows (file is gitignored and untracked)
 
 ## Preflight
 
