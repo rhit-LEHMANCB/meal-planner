@@ -46,6 +46,15 @@ const routes: Record<string, (res: http.ServerResponse) => void> = {
 		res.writeHead(301, { location: 'http://10.0.0.1/' });
 		res.end();
 	},
+	'/stall-gzip': (res) => {
+		// A valid gzip start, then nothing more: the decompressor waits for the rest.
+		res.writeHead(200, { 'content-type': 'text/html', 'content-encoding': 'gzip' });
+		res.write(zlib.gzipSync('<html>' + 'x'.repeat(10_000)).subarray(0, 20));
+	},
+	'/to-ftp': (res) => {
+		res.writeHead(302, { location: 'ftp://example.com/recipe' });
+		res.end();
+	},
 	'/loop': (res) => {
 		res.writeHead(302, { location: '/loop' });
 		res.end();
@@ -179,6 +188,14 @@ describe('safeFetch', () => {
 
 	it('gives up after the time limit', async () => {
 		expect(await reason(safeFetch(at('/slow'), options({ timeoutMs: 300 })))).toBe('timeout');
+	});
+
+	it('gives up after the time limit when a compressed body stalls', async () => {
+		expect(await reason(safeFetch(at('/stall-gzip'), options({ timeoutMs: 300 })))).toBe('timeout');
+	});
+
+	it('reports a redirect to another scheme as unreachable, not as a bad link', async () => {
+		expect(await reason(safeFetch(at('/to-ftp'), options()))).toBe('unreachable');
 	});
 
 	it('reports a host that does not resolve as unreachable', async () => {

@@ -130,10 +130,12 @@ export const actions = {
 				source: 'link' as ImportSource,
 				review: {
 					values,
+					// The draft's origin is not posted back, so its "structured data" or "AI parsed"
+					// notice is not repeated; the field errors are what matter now.
 					info: {
 						via: null,
 						ingredientCount: values.ingredients.length,
-						needsCheck: 0,
+						needsCheck: values.ingredients.filter((row) => rowStatus(row) === 'check').length,
 						droppedIngredients: 0,
 						droppedSteps: 0
 					} satisfies ReviewInfo

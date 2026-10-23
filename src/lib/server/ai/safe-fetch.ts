@@ -2,7 +2,7 @@ import dns from 'node:dns';
 import http from 'node:http';
 import https from 'node:https';
 import type { LookupFunction } from 'node:net';
-import type { Readable } from 'node:stream';
+import { pipeline, type Readable } from 'node:stream';
 import zlib from 'node:zlib';
 import { isIpLiteral, isPublicAddress } from '$lib/domain/ip-address';
 
@@ -114,15 +114,20 @@ const request = (url: URL, options: SafeFetchOptions, signal: AbortSignal) =>
 		req.end();
 	});
 
+/**
+ * The decoded body stream. `pipeline` (unlike `pipe`) carries an abort or error on the response
+ * into the decompressor, so a stalled compressed body still ends at the deadline.
+ */
 const decompress = (res: http.IncomingMessage): Readable => {
+	const ignore = () => {};
 	switch ((res.headers['content-encoding'] ?? '').toLowerCase()) {
 		case 'gzip':
 		case 'x-gzip':
-			return res.pipe(zlib.createGunzip());
+			return pipeline(res, zlib.createGunzip(), ignore);
 		case 'deflate':
-			return res.pipe(zlib.createInflate());
+			return pipeline(res, zlib.createInflate(), ignore);
 		case 'br':
-			return res.pipe(zlib.createBrotliDecompress());
+			return pipeline(res, zlib.createBrotliDecompress(), ignore);
 		default:
 			return res;
 	}
@@ -177,7 +182,15 @@ export const safeFetch = async (
 				const location = res.headers.location;
 				if (!location) throw new FetchError('unreachable');
 				if (hop >= maxRedirects) throw new FetchError('redirects');
-				url = checkUrl(new URL(location, url).href, options);
+				try {
+					url = checkUrl(new URL(location, url).href, options);
+				} catch (error) {
+					// The user's link was fine; the site sent them somewhere we will not follow.
+					if (error instanceof FetchError && error.reason === 'invalid') {
+						throw new FetchError('unreachable');
+					}
+					throw error;
+				}
 				continue;
 			}
 			if (status < 200 || status >= 300) {

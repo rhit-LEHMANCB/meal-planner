@@ -101,6 +101,13 @@ describe('formatting', () => {
 		expect(formatAmount(1.15)).toBe('1.15');
 	});
 
+	it.each([0.34, 0.33, 0.376, 0.004, 0.333, 1.5, 2.667, 12.125])(
+		'reads %j back as exactly the same amount',
+		(n) => {
+			expect(parseAmount(formatAmount(n))).toBe(n);
+		}
+	);
+
 	it('builds a display line from the parts', () => {
 		expect(
 			formatIngredientLine({ quantity: 2, unit: 'tbsp', name: 'chili powder', note: 'divided' })

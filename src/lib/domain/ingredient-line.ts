@@ -201,12 +201,13 @@ const NICE_FRACTIONS: [number, string][] = [
 
 /** Shows an amount the way a recipe would: 1.5 → "1 1/2", 0.333 → "1/3", 2.25 → "2 1/4". */
 export const formatAmount = (n: number): string => {
-	const whole = Math.floor(n);
-	const frac = n - whole;
-	if (frac < 0.005) return String(whole);
-	const nice = NICE_FRACTIONS.find(([v]) => Math.abs(v - frac) < 0.01);
+	const value = round3(n);
+	const whole = Math.floor(value);
+	if (value === whole) return String(whole);
+	// Only a fraction that reads back as exactly the same stored amount, so editing never shifts it.
+	const nice = NICE_FRACTIONS.find(([v]) => round3(whole + v) === value);
 	if (nice) return whole > 0 ? `${whole} ${nice[1]}` : nice[1];
-	return String(round3(n));
+	return String(value);
 };
 
 /** Builds a display line from the parts: "2 tbsp chili powder, divided". */

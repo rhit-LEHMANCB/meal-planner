@@ -87,7 +87,12 @@ export const makeImporter = (deps: ImporterDeps) => {
 			const result = await deps.extract(source, sourceUrl);
 			return { ok: true, via: 'ai', ...result };
 		} catch (error) {
-			if (!(error instanceof ExtractError)) throw error;
+			if (!(error instanceof ExtractError)) {
+				// A bug after the call; the model may have been reached, so the slot is kept.
+				// Only the message is logged: the source can hold the user's text or photo.
+				console.error('Recipe import failed:', (error as Error)?.message);
+				return fail('unavailable');
+			}
 			// Only a request that never reached the model is given back.
 			if (!error.reachedModel) await deps.usage.refundAi(userId);
 			return fail(error.reason);

@@ -166,6 +166,19 @@ describe('limits', () => {
 	});
 });
 
+describe('unexpected errors', () => {
+	it('report import as unavailable instead of failing the request, keeping the slot', async () => {
+		const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
+		t.extract.mockRejectedValueOnce(new TypeError('boom'));
+		expect(await t.importer.fromText(USER, 'Soup', null)).toEqual({
+			ok: false,
+			reason: 'unavailable'
+		});
+		expect(t.usage.refundAi).not.toHaveBeenCalled();
+		quiet.mockRestore();
+	});
+});
+
 describe('pasted text', () => {
 	it('refuses empty or too long text before the cooldown', async () => {
 		expect(await t.importer.fromText(USER, '   ', null)).toEqual({

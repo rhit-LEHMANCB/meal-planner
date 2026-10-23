@@ -56,7 +56,7 @@ const content = (source: ExtractSource): Anthropic.ContentBlockParam[] => {
 		];
 	}
 	// The closing tag is removed from the material so it cannot end the data block early.
-	const material = source.text.replaceAll('</recipe_source>', '');
+	const material = source.text.replace(/<\/\s*recipe_source\s*>/gi, '');
 	return [
 		{
 			type: 'text',

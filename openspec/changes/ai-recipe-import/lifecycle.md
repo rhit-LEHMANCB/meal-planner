@@ -2,7 +2,7 @@
 
 - Branch: `ai-recipe-import`
 - Stage: 4 Review
-- Review round: 0 of 3
+- Review round: 1 of 3
 - QA cycle: 0 of 3
 - Started: 2026-10-23
 
@@ -109,11 +109,13 @@ Run 2026-10-23. GitHub backend: `gh`.
 
 ## Review rounds
 
-(none yet; one line per round: blockers, majors, fixed, rejected with reason)
+- Round 1 (2026-10-23): 0 blockers, 1 major, 6 minors, 2 nits. Fixed: the major (a stalled compressed body could get past the 10 s deadline, because `pipe` did not pass the abort on; now `pipeline`, with a test); amounts drifting when edited (`formatAmount` only shows a fraction that reads back as exactly the same amount, with round-trip tests); a redirect to another scheme or port was reported as a bad link (now "could not be read", with a test); unexpected errors after the model call became a 500 (now "unavailable", slot kept, only the message logged); `needsCheck` on a failed save; case-insensitive delimiter strip. Status rule for an amount with no unit: code and design say "parsed" (counts such as "2 eggs"); the spec wording said "check", so the wording in both spec deltas was clarified to match the approved design. `max_tokens` 8192 kept and the design updated (a 100-row recipe can need more than 4096 output tokens). Not fixed: midnight-UTC window between start and reserve (deferred).
 
 ## Deferred findings
 
-(minors, nits and known gaps to turn into issues at wrap-up)
+- Round 1 minor: an import started within 10 s before 00:00 UTC can be refused as over the daily limit, or have its refund miss, because `startImport` and `reserveAi` are separate statements and `reserveAi` matches only today's row. Rare, harmless (the user retries).
+- Known gap: without JavaScript, editing a row's fields does not clear its hidden display line, so the line can keep the old wording; reordering rows also needs JavaScript.
+- Known gap: a failed save on the import review no longer shows the "AI parsed" or "structured data" notice (the draft's origin is not posted back).
 
 ## QA report
 

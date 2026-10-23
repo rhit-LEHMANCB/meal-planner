@@ -60,7 +60,7 @@ The system SHALL validate a reviewed import on save with the same rules and limi
 
 ### Requirement: Ingredients are reviewed as structured rows
 
-The system SHALL show each imported ingredient as a row with the line as written plus editable amount, unit, name and note, and a status chip: "Parsed" when amount and unit are understood, "Check" when an amount or unit is missing or not recognized, and "No amount" for lines like "salt to taste". Saved imported ingredients SHALL keep their amount, unit, name and note.
+The system SHALL show each imported ingredient as a row with the line as written plus editable amount, unit, name and note, and a status chip: "Parsed" when the amount is understood and its unit, if it has one, is recognized (a count such as "2 eggs" needs no unit), "Check" when the amount is missing or unreadable or the unit is not recognized, and "No amount" for lines like "salt to taste". Saved imported ingredients SHALL keep their amount, unit, name and note.
 
 #### Scenario: Parsed row
 

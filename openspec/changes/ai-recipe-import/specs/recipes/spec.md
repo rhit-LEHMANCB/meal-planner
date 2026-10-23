@@ -97,7 +97,7 @@ The system SHALL keep each ingredient row's amount, unit, name and note through 
 
 ### Requirement: Ingredient rows show their status
 
-The system SHALL show a status chip on every ingredient row in the add and edit forms: "Parsed" when amount and unit are understood, "Check" when an amount or unit is missing or not recognized, and "No amount" for rows such as "salt to taste". The status SHALL follow the row's current fields.
+The system SHALL show a status chip on every ingredient row in the add and edit forms: "Parsed" when the amount is understood and its unit, if it has one, is recognized (a count such as "2 eggs" needs no unit), "Check" when the amount is missing or unreadable or the unit is not recognized, and "No amount" for rows such as "salt to taste". The status SHALL follow the row's current fields.
 
 #### Scenario: Chip follows edits
 
