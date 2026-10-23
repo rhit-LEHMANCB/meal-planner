@@ -12,7 +12,7 @@
 
 <svelte:head><title>{recipe.title}</title></svelte:head>
 
-<div class="flex max-w-[760px] flex-col gap-6">
+<div class="flex max-w-[1200px] flex-col gap-6">
 	<a class="text-sm font-medium text-herb" href={resolve('/recipes')}>‹ Back to recipes</a>
 
 	<header class="flex flex-wrap items-start gap-4">
