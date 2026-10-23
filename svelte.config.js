@@ -1,4 +1,4 @@
-import adapter from '@sveltejs/adapter-auto';
+import adapter from '@sveltejs/adapter-node';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 /** @type {import('@sveltejs/kit').Config} */
@@ -9,7 +9,7 @@ const config = {
 		runes: ({ filename }) => (filename.includes('node_modules') ? undefined : true)
 	},
 	kit: {
-		// Firebase Hosting's web frameworks integration builds the SSR function itself.
+		// Firebase App Hosting builds and runs this as a plain Node server on Cloud Run.
 		adapter: adapter()
 	}
 };

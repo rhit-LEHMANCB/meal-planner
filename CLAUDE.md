@@ -4,14 +4,14 @@ Meal planning app: AI recipe import, a weekly plan with leftovers, grocery lists
 
 ## Stack
 
-- SvelteKit 2 (Svelte 5 runes). Stay on 2.x until the Firebase Hosting SSR wrapper supports SvelteKit 3 (the property app does the same). Tailwind 4. Path alias is `$lib`. Env vars come from `$env/static/private` and `$env/static/public` (set at build time).
-- Firebase Hosting + Cloud Functions (web frameworks) for SSR, and Firebase Auth for sign-in only.
+- SvelteKit 2 (Svelte 5 runes) with `adapter-node`, Tailwind 4. `adapter-node` 6 needs SvelteKit 3, so upgrade both together; App Hosting runs a plain Node server, so there is no hosting-wrapper constraint any more. Path alias is `$lib`. Public config uses `$env/static/public`. Secrets use `$env/dynamic/private` and are read lazily (`getDb()`, `getAdminAuth()`), because they only exist at runtime on App Hosting.
+- Firebase App Hosting (Cloud Run, built from GitHub on push to `production`) for SSR, and Firebase Auth for sign-in only. Config is in `apphosting.yaml` and `firebase.json`.
 - Neon Postgres through Drizzle. Schema in `src/lib/server/db/schema.ts`. Every user-data row has a `user_id` (the Firebase uid) and every query must filter by it. There are no database security rules.
 - Anthropic API for recipe parsing (`src/lib/server/ai`). The model parses and matches only. Calorie and macro numbers always come from the `foods` table, never from the model.
 
 ## Rules
 
-- Packages the server imports belong in `dependencies`, not `devDependencies`. Firebase builds the function from `dependencies` only. `npm run check:server` (run after `npm run build`) catches misses.
+- Packages the server imports belong in `dependencies`, not `devDependencies`. App Hosting prunes `devDependencies` from the runtime image. `npm run check:server` (run after `npm run build`) catches misses.
 - Keep unit conversion, grocery aggregation and nutrition math as pure functions in `src/lib/domain` with Vitest specs. Leftover meals must never add to the grocery list.
 - Snapshot macros onto `food_log` rows at log time.
 - Use the Neon pooled connection string.
@@ -38,7 +38,8 @@ Early development: there is a single environment, production. No separate dev si
 - Schema changes: edit `schema.ts`, then `npm run db:generate` and `npm run db:migrate` (migrations are committed under `drizzle/`). `npm run db:smoke` proves the connection with a write, read and delete.
 - `/api/health` returns `{"db":"ok"}` when the database is reachable.
 - Because there is no dev environment, run QA and tests against a Neon branch (`neon checkout <name> --create`), never the `production` branch, and do not run `dev-lifecycle` QA until a dev site exists.
-- GitHub environment: `production` with the secrets and vars used in `.github/workflows/firebase-hosting-merge.yml`.
+- App Hosting backend id: `meal-planner`, live branch `production`. Secrets (`DATABASE_URL`, `ANTHROPIC_API_KEY`, `FB_CLIENT_EMAIL`, `FB_PRIVATE_KEY`) live in Cloud Secret Manager (`firebase apphosting:secrets:set <NAME>`), not in GitHub. There is no deploy GitHub Action: App Hosting builds and rolls out itself. GitHub Actions only runs `CI` and the OpenSpec archive.
+- `dev-lifecycle` still waits on a `firebase-hosting-merge.yml` run for the dev deploy. That workflow no longer exists, so rework that stage when a dev backend is added.
 
 ## Process
 

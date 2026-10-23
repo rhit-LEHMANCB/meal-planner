@@ -1,4 +1,4 @@
-// Fails when the server build imports a package that the deployed Cloud Function would not install.
+// Fails when the server build imports a package that the deployed Cloud Run image would not install.
 //
 // Firebase Hosting builds the function from `dependencies` (devDependencies are dropped) plus
 // @sveltejs/kit, and Vite leaves some imports of bundled packages external (for example the

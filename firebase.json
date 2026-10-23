@@ -1,9 +1,7 @@
 {
-	"hosting": {
-		"source": ".",
-		"ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-		"frameworksBackend": {
-			"region": "us-central1"
-		}
+	"apphosting": {
+		"backendId": "meal-planner",
+		"rootDir": "/",
+		"ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
 	}
 }

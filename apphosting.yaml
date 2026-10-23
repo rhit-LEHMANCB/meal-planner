@@ -1,0 +1,44 @@
+# Firebase App Hosting config. App Hosting builds this repo from GitHub on every push to the
+# live branch (production) and runs it on Cloud Run.
+# https://firebase.google.com/docs/app-hosting/configure
+runConfig:
+  cpu: 1
+  memoryMiB: 512
+  minInstances: 0 # scale to zero while this is a hobby project
+  maxInstances: 2 # cost cap
+  concurrency: 80
+
+scripts:
+  runCommand: node build
+
+env:
+  # adapter-node needs these behind Cloud Run's proxy so form posts pass SvelteKit's origin check.
+  - variable: PROTOCOL_HEADER
+    value: x-forwarded-proto
+    availability: [RUNTIME]
+  - variable: HOST_HEADER
+    value: x-forwarded-host
+    availability: [RUNTIME]
+
+  # Public Firebase web config: not secret, inlined into the client bundle at build time.
+  - variable: PUBLIC_FB_PROJECT_ID
+    value: lehman-meals
+    availability: [BUILD, RUNTIME]
+  # TODO: add PUBLIC_FB_API_KEY, PUBLIC_FB_AUTH_DOMAIN and PUBLIC_FB_APP_ID from the Firebase console
+  # (Project settings > Your apps). The build fails until they are set.
+
+  # Secrets live in Cloud Secret Manager. Create each with:
+  #   firebase apphosting:secrets:set <NAME>
+  # They are read at runtime only, so they are never baked into the build output.
+  - variable: DATABASE_URL
+    secret: DATABASE_URL
+    availability: [RUNTIME]
+  - variable: ANTHROPIC_API_KEY
+    secret: ANTHROPIC_API_KEY
+    availability: [RUNTIME]
+  - variable: FB_CLIENT_EMAIL
+    secret: FB_CLIENT_EMAIL
+    availability: [RUNTIME]
+  - variable: FB_PRIVATE_KEY
+    secret: FB_PRIVATE_KEY
+    availability: [RUNTIME]
