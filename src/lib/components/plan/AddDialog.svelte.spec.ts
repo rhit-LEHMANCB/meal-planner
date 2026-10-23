@@ -85,6 +85,16 @@ describe('AddDialog', () => {
 		expect(screen.container.textContent).not.toContain('Lemon pasta');
 	});
 
+	it('lets an over-ask reach the server, which says how many are free', async () => {
+		// No browser `max` on Servings: it would block the submit with its own message instead.
+		const screen = render(AddDialog, { props: props() });
+		await screen.getByRole('tab', { name: 'Leftover' }).click();
+		await screen.getByRole('radio', { name: /Turkey chili/ }).click();
+		await screen.getByLabelText('Servings').fill('5');
+		const input = screen.container.querySelector<HTMLInputElement>('input[name="servings"]');
+		expect(input?.checkValidity()).toBe(true);
+	});
+
 	it('warns about a batch past its eat-by but still offers it', async () => {
 		const screen = render(AddDialog, {
 			props: props({ target: { date: '2026-10-24', slot: 'lunch' } })

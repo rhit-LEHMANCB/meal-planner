@@ -98,7 +98,6 @@
 				)
 			: []
 	);
-	const chosenBatch = $derived(usableBatches.find((b) => b.id === batchId));
 	const chosenFood = $derived(foods.find((f) => f.id === foodId));
 	const spare = $derived(Math.max(0, cooked - eaten));
 	const fridgeHint = (date: string) => {
@@ -526,7 +525,6 @@
 									type="number"
 									name="servings"
 									min="1"
-									max={chosenBatch?.free ?? 99}
 									bind:value={servings}
 									aria-invalid={errors.servings ? 'true' : undefined}
 									aria-describedby={describe('servings')}

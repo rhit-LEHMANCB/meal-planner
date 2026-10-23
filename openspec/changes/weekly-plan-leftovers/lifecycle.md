@@ -1,9 +1,9 @@
 # Lifecycle: weekly-plan-leftovers
 
 - Branch: `weekly-plan-leftovers`
-- Stage: 5 Ship to develop
+- Stage: 6 QA (cycle 1 found an app bug; fix in progress)
 - Review round: 2 of 3
-- QA cycle: 0 of 3
+- QA cycle: 1 of 3
 - Started: 2026-10-23
 
 ## Interview summary
@@ -130,9 +130,25 @@ Deviation: the UI was not driven in `npm run dev`. The local `.env` points at pr
 - Plan and leftover integration specs run only where `TEST_DATABASE_URL` is set (not in CI).
 - Batch state uses the server's UTC date; the plan header uses the browser's local date.
 
+## Ship to develop (stage 5)
+
+PR https://github.com/rhit-LEHMANCB/meal-planner/pull/23: `verify` passed on the first run, merged into `develop` with a merge commit as `674b656`.
+
 ## QA report
 
-(filled in stage 6; link to the QA evidence branch)
+Dev rollout of `674b656`: `App Hosting - Rollout (…/meal-planner-dev)` succeeded, `migrate` succeeded, and `/api/health` returned `{"db":"ok"}`.
+
+### Cycle 1 (independent Sonnet QA agent)
+
+62 passed, 1 failed, 1 skipped.
+
+- **Failed:** leftovers "Draw more than is free". Classified as an **app bug**. The Servings input's native `max` made the browser block the submit with "Value must be 1." instead of the spec's "Only 1 serving is free." The server refusal itself was correct (409 with the right message, nothing saved).
+- **Skipped:** foods "Food with an extra unit". Classified as **environment**: the dev database has no shared foods, so no food with an extra unit exists. This becomes a human test, not a fix.
+
+Fix branch `weekly-plan-leftovers-qa-fix`:
+- removes the native `max` from Servings, so the server's message shows
+- adds a component spec for it
+- makes the phone day headings one text node (a QA observation)
 
 ## Verification checklist for the human
 
