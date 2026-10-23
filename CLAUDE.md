@@ -24,6 +24,15 @@ Mockups: https://claude.ai/artifact/LZ2eJMT726E4PtF5XzNMd5 (weekly plan, import 
 
 `develop` deploys to the dev site, `production` to prod. Work on feature branches and merge to `develop` first.
 
+## Auth and recipes
+
+- Access is gated twice: `/api/session` refuses to start a session unless the email is allowlisted and verified, and `hooks.server.ts` re-checks both on every request (so removing an email takes effect immediately). Public routes are `/signin`, `/signup`, `/reset` and `/api/*` (`src/lib/domain/paths.ts`).
+- Accounts are created only by the sign-up server action after the allowlist check. Keep "Enable create (sign-up)" off in the Firebase console.
+- Routes get the user from `requireUserId(locals)` and talk to recipes only through `getRecipeStore()` (`src/lib/server/recipes.ts`), whose methods all take the owner id. Someone else's recipe must look exactly like a missing one (404). Never query the recipe tables from a route directly.
+- Recipe ingredients and steps are free text, one per line. Ingredient rows are saved with `match_status = 'unparsed'`; the AI import change will parse them.
+- Integration tests (`recipes.integration.spec.ts`) run when `TEST_DATABASE_URL` points at the Neon `dev` branch and are skipped otherwise. They clean up their own rows.
+- Drizzle prints a bare column name in single-table queries, so a correlated subquery must write the outer table's name out by hand.
+
 ## Database notes
 
 - The Neon HTTP driver (`drizzle-orm/neon-http`) has no interactive transactions. Use `db.batch([...])` for multi-step writes, or switch to the WebSocket `Pool` driver if a flow needs real transactions (for example drawing down leftover servings while inserting a planned meal).

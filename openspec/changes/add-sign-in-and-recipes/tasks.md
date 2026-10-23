@@ -34,9 +34,9 @@
 
 ## 6. Integration and rollout
 
-- [ ] 6.1 Run `npm run lint`, `npm run check`, `npm test`, `npm run build` and `npm run check:server` and verify all pass
-- [ ] 6.2 Update `README.md` and `CLAUDE.md` with the auth flow, the allowlist and the Firebase console steps
-- [ ] 6.3 Write the human verification checklist (sign-up email arrives, verification link works, reset email works, two-account privacy check on the live site) into the change's `lifecycle.md`
+- [x] 6.1 Run `npm run lint`, `npm run check`, `npm test`, `npm run build` and `npm run check:server` and verify all pass
+- [x] 6.2 Update `README.md` and `CLAUDE.md` with the auth flow, the allowlist and the Firebase console steps
+- [x] 6.3 Write the human verification checklist (sign-up email arrives, verification link works, reset email works, two-account privacy check on the live site) into the change's `lifecycle.md`
 
 ## Workflow follow-up
 

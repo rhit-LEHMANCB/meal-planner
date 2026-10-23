@@ -7,7 +7,7 @@ import ListPage from './+page.svelte';
 import DetailPage from './[id]/+page.svelte';
 
 const html = (component: unknown, props: Record<string, unknown>) =>
-	render(component as Parameters<typeof render>[0], { props }).body;
+	render(component as never, { props: props as never }).body;
 
 const summary = (over: Record<string, unknown> = {}) => ({
 	id: '11111111-1111-4111-8111-111111111111',
