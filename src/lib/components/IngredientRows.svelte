@@ -96,19 +96,19 @@
 	{#if error}<span class="field-error" role="alert">{error}</span>{/if}
 
 	<div
-		class="hidden grid-cols-[5.5rem_6rem_minmax(0,1.6fr)_minmax(0,1fr)_6.5rem_8.5rem] gap-2 text-xs font-bold tracking-[0.06em] text-muted uppercase md:grid"
+		class="hidden grid-cols-[5.5rem_6rem_minmax(0,1.6fr)_minmax(0,1fr)_6.5rem_9rem] gap-2 text-xs font-bold tracking-[0.06em] text-muted uppercase xl:grid"
 		aria-hidden="true"
 	>
 		<span>Amount</span><span>Unit</span><span>Name</span><span>Note</span><span>Status</span><span
 		></span>
 	</div>
 
-	<ol class="flex flex-col gap-3 md:gap-2">
+	<ol class="flex flex-col gap-3 xl:gap-2">
 		{#each items as row, i (row.id)}
 			{@const status = isBlank(row) ? null : rowStatus(row)}
 			{@const n = i + 1}
 			<li
-				class="grid grid-cols-2 gap-2 border-t border-[#e3e9df] pt-3 md:grid-cols-[5.5rem_6rem_minmax(0,1.6fr)_minmax(0,1fr)_6.5rem_8.5rem] md:items-start md:border-0 md:pt-0"
+				class="grid grid-cols-2 gap-2 border-t border-[#e3e9df] pt-3 xl:grid-cols-[5.5rem_6rem_minmax(0,1.6fr)_minmax(0,1fr)_6.5rem_9rem] xl:items-start xl:border-0 xl:pt-0"
 				data-row={n}
 			>
 				<input type="hidden" name="ingredientRaw" value={row.raw} />
@@ -138,7 +138,7 @@
 						aria-invalid={row.errors.unit ? 'true' : undefined}
 					/>
 				</div>
-				<div class="col-span-2 flex flex-col gap-1 md:col-span-1">
+				<div class="col-span-2 flex flex-col gap-1 xl:col-span-1">
 					<label class="sr-only" for="name-{row.id}">Name, row {n}</label>
 					<input
 						id="name-{row.id}"
@@ -151,7 +151,7 @@
 						aria-describedby={row.errors.name ? `name-error-${row.id}` : undefined}
 					/>
 				</div>
-				<div class="col-span-2 flex flex-col gap-1 md:col-span-1">
+				<div class="col-span-2 flex flex-col gap-1 xl:col-span-1">
 					<label class="sr-only" for="note-{row.id}">Note, row {n}</label>
 					<input
 						id="note-{row.id}"
@@ -194,7 +194,7 @@
 					>
 				</div>
 				{#if row.raw || Object.keys(row.errors).length > 0}
-					<div class="col-span-2 flex flex-col gap-0.5 md:col-span-6">
+					<div class="col-span-2 flex flex-col gap-0.5 xl:col-span-6">
 						{#if row.raw}<span class="text-[13px] text-muted">As written: {row.raw}</span>{/if}
 						{#each Object.entries(row.errors) as [field, message] (field)}
 							<span id="{field}-error-{row.id}" class="field-error">{message}</span>

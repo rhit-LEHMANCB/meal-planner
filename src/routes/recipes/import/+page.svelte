@@ -268,7 +268,8 @@
 		</aside>
 
 		{#if review}
-			<section aria-label="Imported recipe" class="min-w-0 flex-[999_1_560px]">
+			<!-- Beside the source panel only when the review still gets about 760px; otherwise below it. -->
+			<section aria-label="Imported recipe" class="min-w-0 flex-[999_1_760px]">
 				<RecipeForm
 					values={review.values}
 					errors={form && 'errors' in form ? form.errors : undefined}
