@@ -127,15 +127,80 @@ describe('recipe form', () => {
 		servings: '4',
 		totalMinutes: '',
 		sourceUrl: 'example.com/chili',
-		ingredients: 'beans\nrice',
+		ingredients: [
+			{
+				raw: '1 can (15 oz) beans, drained',
+				amount: '1',
+				unit: 'can',
+				name: 'beans',
+				note: '15 oz, drained'
+			},
+			{ raw: '', amount: '2', unit: 'scoop', name: 'protein', note: '' },
+			{ raw: 'Salt to taste', amount: '', unit: '', name: 'Salt', note: 'to taste' }
+		],
 		steps: 'Cook.'
 	};
 
-	it('refills what was typed and keeps one item per line', () => {
+	it('refills what was typed, one labelled row per ingredient', () => {
 		const out = html(RecipeForm, { values, submitLabel: 'Save recipe', cancelHref: '/recipes' });
 		expect(out).toContain('value="Chili"');
-		expect(out).toContain('beans\nrice');
+		expect(out).toContain('Amount, row 1');
+		expect(out).toContain('Name, row 3');
+		expect(out).toContain('value="beans"');
+		expect(out).toContain('value="15 oz, drained"');
+		expect(out).toContain('As written: 1 can (15 oz) beans, drained');
+		expect(out.indexOf('value="beans"')).toBeLessThan(out.indexOf('value="protein"'));
 		expect(out).toContain('Save recipe');
+	});
+
+	it('shows a status chip per row and a spare empty row', () => {
+		const out = html(RecipeForm, { values, submitLabel: 'Save', cancelHref: '/recipes' });
+		expect([...out.matchAll(/data-status="(\w+)"/g)].map((m) => m[1])).toEqual([
+			'parsed',
+			'check',
+			'skipped'
+		]);
+		expect(out).toContain('Name, row 4');
+		expect(out).not.toContain('Name, row 5');
+		expect(out).toContain('Paste ingredient lines');
+	});
+
+	it('gives an empty form three rows to type into', () => {
+		const out = html(RecipeForm, {
+			values: { ...values, ingredients: [] },
+			submitLabel: 'Save',
+			cancelHref: '/recipes'
+		});
+		expect(out).toContain('Name, row 3');
+		expect(out).not.toContain('Name, row 4');
+		expect(out).not.toContain('data-status');
+	});
+
+	it('shows a row error next to that row', () => {
+		const out = html(RecipeForm, {
+			values,
+			errors: {
+				ingredients: 'Fix the highlighted ingredients.',
+				rows: { 1: { amount: 'Use a number or a fraction such as 1/2.' } }
+			},
+			submitLabel: 'Save',
+			cancelHref: '/recipes'
+		});
+		expect(out).toContain('Fix the highlighted ingredients.');
+		expect(out).toContain('Use a number or a fraction such as 1/2.');
+		expect(out.indexOf('value="protein"')).toBeLessThan(out.indexOf('Use a number or a fraction'));
+	});
+
+	it('can post to a named action with its own cancel label', () => {
+		const out = html(RecipeForm, {
+			values,
+			submitLabel: 'Save to recipe shelf',
+			cancelHref: '/recipes',
+			cancelLabel: 'Discard',
+			action: '?/save'
+		});
+		expect(out).toContain('action="?/save"');
+		expect(out).toContain('Discard');
 	});
 
 	it('shows each error next to its field and marks the field invalid', () => {

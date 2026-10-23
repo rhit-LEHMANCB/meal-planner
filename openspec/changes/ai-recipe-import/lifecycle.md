@@ -1,7 +1,7 @@
 # Lifecycle: ai-recipe-import
 
 - Branch: `ai-recipe-import`
-- Stage: 2 Gate A (waiting for approval)
+- Stage: 3 Implement
 - Review round: 0 of 3
 - QA cycle: 0 of 3
 - Started: 2026-10-23
@@ -86,8 +86,8 @@
 
 ## Gate A
 
-Approved: no
-Accepted preflight gaps: none
+Approved: yes, 2026-10-23 (user: "approve")
+Accepted preflight gaps: Node 22.23.2 locally instead of 24 (CI runs 24)
 
 ## Preflight
 
