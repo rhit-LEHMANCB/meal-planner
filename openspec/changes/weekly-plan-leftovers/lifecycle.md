@@ -1,9 +1,9 @@
 # Lifecycle: weekly-plan-leftovers
 
 - Branch: `weekly-plan-leftovers`
-- Stage: 6 QA (cycle 1 found an app bug; fix in progress)
+- Stage: 7 Production PR open, waiting for Gate B (human merge)
 - Review round: 3 of 3
-- QA cycle: 1 of 3
+- QA cycle: 2 of 3
 - Started: 2026-10-23
 
 ## Interview summary
@@ -153,9 +153,68 @@ Fix branch `weekly-plan-leftovers-qa-fix`:
 - adds a component spec for it
 - makes the phone day headings one text node (a QA observation)
 
+The fix merged as PR https://github.com/rhit-LEHMANCB/meal-planner/pull/24 (`03bbfdb`). Its dev rollout succeeded and health was ok.
+
+### Cycle 2 (fresh independent Sonnet QA agent): PASS
+
+- Change suite (`QA_RUN=c2`, `--workers=1`): 64 passed, 1 skipped. `tests/qa/smoke.spec.ts`: 9 of 9 passed.
+- "Draw more than is free" now passes. Through the dialog, with 1 free serving, entering 2 saves nothing and shows "Only 1 serving is free." A crafted POST is refused the same way.
+- "Two draws at once": two simultaneous draws of the last serving give exactly one success and one "No servings are free".
+- Cross-user checks pass with the second account:
+  - another user's week, entry and batch (draw and throw-out)
+  - another user's custom food by search and by id
+  - another user's recipe in a cook
+- Skipped (environment): foods "Food with an extra unit". Dev has no shared foods with units.
+- Regression: `/recipes`, `/plan`, `/leftovers`, `/grocery` and `/nutrition` load with no console errors.
+- Evidence: 57 screenshots on the unmerged branch `qa-evidence/weekly-plan-leftovers` under `openspec/changes/weekly-plan-leftovers/qa/screenshots/`, with the signed-in email masked.
+- Cleanup:
+  - all `qa-` recipes, plan entries and batches were removed by the suite
+  - the 36 leftover `qa-` custom foods (no delete in the UI) were deleted from the Neon `dev` branch afterwards
+- The QA specs are committed under `tests/qa/weekly-plan-leftovers/` and run with `npm run test:qa`.
+
+Not covered by automation:
+- shared foods with units (none on dev)
+- real drag with a mouse, trackpad or touch
+- keyboard-only and screen-reader use beyond tab arrows and Escape
+- a real phone
+- midnight and UTC boundaries
+- two real devices racing
+
 ## Verification checklist for the human
 
-(filled in stage 7)
+Ranked by risk.
+
+1. **Real-day planning flow** (high).
+   - On production `/plan`, this week: cook a recipe for today's dinner (cook 6, eat 2).
+   - Add leftovers for tomorrow's lunch and the day after.
+   - Edit the cook to fewer spare servings than are drawn. Expect the refusal.
+   - Remove one leftover. Expect the free count back in the fridge panel and on `/leftovers`.
+   - Remove the cook. The confirmation should list the remaining leftover, and confirming removes everything.
+2. **Two devices racing for the last serving** (high).
+   - Same user on a phone and a laptop, a batch with 1 free serving, both submit a leftover at once.
+   - Expect exactly one saved, a clear "No servings are free" on the other, and 0 free on `/leftovers`.
+3. **Production migration** (high). After the production deploy:
+   - the `migrate` workflow on `production` succeeded
+   - `/api/health` returns `{"db":"ok"}`
+   - existing recipes still open and edit normally (the migration only adds columns and indexes)
+4. **Phone use** (medium). On a real phone, add a cook, a leftover and a new custom food, move between weeks and throw out a batch. Expect:
+   - no sideways scroll
+   - the dialog usable with the keyboard open
+5. **Drag-and-drop feel** (medium).
+   - In Chrome, Firefox and Safari on desktop, drag recipes from the shelf onto empty and filled slots, and also drop outside a slot.
+   - Expect the dialog for the right slot with the recipe selected, nothing saved until you confirm, and stray drops ignored.
+6. **Keyboard and screen reader in the Add dialog** (medium).
+   - Keyboard only: open Add, switch tabs with the arrow keys, trigger the "eaten more than cooked" and "Only N free" errors, then press Escape.
+   - Expect errors announced, and focus returning to the Add button.
+7. **Shared foods with units** (medium, production-only data).
+   - There are no shared foods yet, so the Food tab only finds your custom foods. Confirm "Create '<name>'" works.
+   - Once foods are imported, confirm that a food with "each" offers g and each.
+8. **Recipe delete wording** (low). Delete a recipe that is on the plan. The confirmation says "It is on N planned meals…", and the plan and `/leftovers` lose those entries.
+
+Production-only risks:
+- The migration runs on the production database by the `migrate` workflow on the same push that rolls out new code. Old code tolerates the new nullable columns.
+- No new secrets or environment variables.
+- The server uses UTC for "today" on `/leftovers`.
 
 ## Halted
 
