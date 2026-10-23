@@ -8,7 +8,6 @@ import {
 	parseLeftoverForm
 } from '$lib/domain/plan-form';
 import { requireUserId } from '$lib/server/auth';
-import { getFoodStore } from '$lib/server/foods';
 import { getPlanStore, type PlanResult } from '$lib/server/plan';
 import { getRecipeStore } from '$lib/server/recipes';
 
@@ -70,6 +69,11 @@ const refusal = (action: string, result: Exclude<PlanResult<unknown>, { ok: true
 			return fail(400, { action, errors: { unit: 'Choose a unit this food has.' } });
 		case 'gone':
 			return fail(409, { action, errors: { form: 'That batch was thrown out.' } });
+		case 'changed':
+			return fail(409, {
+				action,
+				errors: { form: 'This entry changed in the meantime. Refresh the page and try again.' }
+			});
 		case 'has_leftovers':
 			return fail(409, { action, errors: {}, draws: result.draws });
 	}
@@ -92,14 +96,12 @@ export const actions = {
 		return result.ok ? { action: 'addLeftover', ok: true } : refusal('addLeftover', result);
 	},
 
-	/** Adds a food, creating it first as the user's custom food when the form says so. */
+	/** Adds a food, creating it as the user's custom food in the same step when the form says so. */
 	addFood: async ({ locals, request }) => {
 		const userId = requireUserId(locals);
 		const parsed = parseFoodForm(await request.formData());
 		if (!parsed.ok) return fail(400, { action: 'addFood', errors: parsed.errors });
-		const { newFood, ...entry } = parsed.value;
-		const foodId = newFood ? await getFoodStore().create(userId, newFood) : (entry.foodId ?? '');
-		const result = await getPlanStore().addFood(userId, { ...entry, foodId });
+		const result = await getPlanStore().addFood(userId, parsed.value);
 		return result.ok ? { action: 'addFood', ok: true } : refusal('addFood', result);
 	},
 

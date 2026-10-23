@@ -33,6 +33,9 @@ describe.skipIf(!url)('food store (Neon dev branch)', () => {
 		const id = await store.create(alice, { name: `Greek yogurt ${run}`, ...per100 });
 		const found = await store.search(alice, `YOGURT ${run}`);
 		expect(found).toEqual([{ id, name: `Greek yogurt ${run}`, own: true, units: ['g'] }]);
+		// Every word must match, in any order.
+		expect((await store.search(alice, `${run} greek`)).map((f) => f.id)).toEqual([id]);
+		expect(await store.search(alice, `${run} greek kale`)).toEqual([]);
 	});
 
 	it('never shows another user’s custom food', async () => {

@@ -16,6 +16,18 @@ export const SEARCH_LIMIT = 20;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** The row for a new custom food, with its id chosen up front so it can go in a batch. */
+export const customFoodRow = (userId: string, input: NewFoodInput) => ({
+	id: crypto.randomUUID(),
+	userId,
+	name: input.name,
+	source: 'custom',
+	kcalPer100g: String(input.kcalPer100g),
+	proteinPer100g: String(input.proteinPer100g),
+	carbsPer100g: String(input.carbsPer100g),
+	fatPer100g: String(input.fatPer100g)
+});
+
 const escapeLike = (term: string) => term.replace(/[\\%_]/g, '\\$&');
 
 /**
@@ -43,14 +55,14 @@ export const makeFoodStore = (db: Db) => {
 	};
 
 	return {
-		/** Own and shared foods whose name contains `query`, own first, at most 20. */
+		/** Own and shared foods whose name contains every word of `query`, own first, at most 20. */
 		async search(userId: string, query: string): Promise<FoodOption[]> {
-			const term = query.trim();
-			if (!term) return [];
+			const words = query.trim().split(/\s+/).filter(Boolean);
+			if (words.length === 0) return [];
 			const rows = await db
 				.select({ id: foods.id, name: foods.name, userId: foods.userId })
 				.from(foods)
-				.where(and(visible(userId), ilike(foods.name, `%${escapeLike(term)}%`)))
+				.where(and(visible(userId), ...words.map((w) => ilike(foods.name, `%${escapeLike(w)}%`))))
 				.orderBy(sql`${foods.userId} is null`, asc(foods.name))
 				.limit(SEARCH_LIMIT);
 			return withUnits(rows);
@@ -68,18 +80,8 @@ export const makeFoodStore = (db: Db) => {
 
 		/** Creates a custom food owned by the user. Returns its id. */
 		async create(userId: string, input: NewFoodInput): Promise<string> {
-			const [row] = await db
-				.insert(foods)
-				.values({
-					userId,
-					name: input.name,
-					source: 'custom',
-					kcalPer100g: String(input.kcalPer100g),
-					proteinPer100g: String(input.proteinPer100g),
-					carbsPer100g: String(input.carbsPer100g),
-					fatPer100g: String(input.fatPer100g)
-				})
-				.returning({ id: foods.id });
+			const row = customFoodRow(userId, input);
+			await db.insert(foods).values(row);
 			return row.id;
 		}
 	};

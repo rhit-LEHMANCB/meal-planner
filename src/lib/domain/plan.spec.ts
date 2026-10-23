@@ -20,6 +20,10 @@ describe('dates', () => {
 		expect(isIsoDate('2026-10-19T00:00')).toBe(false);
 		expect(isIsoDate('soon')).toBe(false);
 		expect(isIsoDate(null)).toBe(false);
+		// Years outside 2000–2099 would overflow date math or the database.
+		expect(isIsoDate('9999-12-31')).toBe(false);
+		expect(isIsoDate('0000-01-01')).toBe(false);
+		expect(isIsoDate('2099-12-31')).toBe(true);
 	});
 
 	it('adds days across months, years and the DST change', () => {

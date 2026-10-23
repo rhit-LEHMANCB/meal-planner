@@ -42,10 +42,10 @@ const toIso = (date: Date) => date.toISOString().slice(0, 10);
 export const isSlot = (value: unknown): value is Slot =>
 	typeof value === 'string' && (SLOTS as readonly string[]).includes(value);
 
-/** A real calendar date written as `YYYY-MM-DD` (rejects 2026-02-30). */
+/** A real calendar date written as `YYYY-MM-DD` in 2000–2099 (rejects 2026-02-30). */
 export const isIsoDate = (value: unknown): value is string =>
 	typeof value === 'string' &&
-	/^\d{4}-\d{2}-\d{2}$/.test(value) &&
+	/^20\d{2}-\d{2}-\d{2}$/.test(value) &&
 	!Number.isNaN(toDate(value).getTime()) &&
 	toIso(toDate(value)) === value;
 

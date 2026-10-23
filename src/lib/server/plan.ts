@@ -13,10 +13,10 @@ import {
 	type PlanEntry,
 	type Slot
 } from '$lib/domain/plan';
-import type { CookInput, EntryUpdate, LeftoverInput, SlotTarget } from '$lib/domain/plan-form';
+import type { CookInput, EntryUpdate, FoodEntryInput, LeftoverInput } from '$lib/domain/plan-form';
 import { getDb, type Db } from './db';
 import { foodUnits, foods, leftoverBatches, mealPlans, plannedMeals, recipes } from './db/schema';
-import { makeFoodStore } from './foods';
+import { customFoodRow, makeFoodStore } from './foods';
 
 export type { Batch, BatchDraw, PlanEntry };
 
@@ -28,6 +28,7 @@ export type PlanResult<T = void> =
 	| { ok: false; reason: 'below_drawn'; drawn: number }
 	| { ok: false; reason: 'bad_unit' }
 	| { ok: false; reason: 'gone' }
+	| { ok: false; reason: 'changed' }
 	| { ok: false; reason: 'has_leftovers'; draws: BatchDraw[] };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -206,7 +207,12 @@ export const makePlanStore = (db: Db) => {
 		async getWeek(userId: string, monday: string): Promise<PlanEntry[]> {
 			const rows = await entryRows(userId)
 				.where(eq(mealPlans.weekStart, monday))
-				.orderBy(asc(plannedMeals.date), asc(plannedMeals.slot), asc(plannedMeals.position));
+				.orderBy(
+					asc(plannedMeals.date),
+					asc(plannedMeals.slot),
+					asc(plannedMeals.position),
+					asc(plannedMeals.id)
+				);
 			const units = await unitsFor([...new Set(rows.flatMap((r) => (r.foodId ? [r.foodId] : [])))]);
 			const drawn = await drawnByBatch(rows.flatMap((r) => (r.cookBatchId ? [r.cookBatchId] : [])));
 			return rows.map((row) => toEntry(row, units, drawn));
@@ -349,29 +355,40 @@ export const makePlanStore = (db: Db) => {
 			return { ok: true, value: mealId };
 		},
 
-		/** Adds a food the user can see, in grams or one of its units. */
-		async addFood(
-			userId: string,
-			input: SlotTarget & { foodId: string; amount: number; unit: string }
-		): Promise<PlanResult<string>> {
-			const food = await foodStore.get(userId, input.foodId);
-			if (!food) return { ok: false, reason: 'not_found' };
-			if (!food.units.includes(input.unit)) return { ok: false, reason: 'bad_unit' };
+		/**
+		 * Adds a food the user can see, in grams or one of its units. With `newFood` the custom food is
+		 * created in the same batch, so a failed add never leaves a stray food behind.
+		 */
+		async addFood(userId: string, input: FoodEntryInput): Promise<PlanResult<string>> {
+			let foodId: string;
+			let createFood: ReturnType<typeof customFoodRow> | null = null;
+			if (input.newFood) {
+				// A new custom food has no units of its own yet.
+				if (input.unit !== 'g') return { ok: false, reason: 'bad_unit' };
+				createFood = customFoodRow(userId, input.newFood);
+				foodId = createFood.id;
+			} else {
+				const food = input.foodId ? await foodStore.get(userId, input.foodId) : null;
+				if (!food) return { ok: false, reason: 'not_found' };
+				if (!food.units.includes(input.unit)) return { ok: false, reason: 'bad_unit' };
+				foodId = food.id;
+			}
 
 			const planId = await planIdFor(userId, mondayOf(input.date));
-			const [row] = await db
-				.insert(plannedMeals)
-				.values({
-					planId,
-					date: input.date,
-					slot: input.slot,
-					foodId: food.id,
-					quantity: String(input.amount),
-					unit: input.unit,
-					position: nextPosition(planId, input.date, input.slot)
-				})
-				.returning({ id: plannedMeals.id });
-			return { ok: true, value: row.id };
+			const id = crypto.randomUUID();
+			const insertEntry = db.insert(plannedMeals).values({
+				id,
+				planId,
+				date: input.date,
+				slot: input.slot,
+				foodId,
+				quantity: String(input.amount),
+				unit: input.unit,
+				position: nextPosition(planId, input.date, input.slot)
+			});
+			if (createFood) await db.batch([db.insert(foods).values(createFood), insertEntry]);
+			else await insertEntry;
+			return { ok: true, value: id };
 		},
 
 		/**
@@ -428,59 +445,71 @@ export const makePlanStore = (db: Db) => {
 				return { ok: true };
 			}
 
+			// Cook and leftover edits lock the entry and only apply if it still holds the servings read
+			// above (`old`), so two edits of the same entry cannot both move the batch by a stale delta.
+			// Zero rows back means the entry changed meanwhile or the batch rule refused it.
+			const old = entry.servings;
+			const lockEntry = sql`
+				select p."id", p."leftover_batch_id" from "planned_meals" p
+				where p."id" = ${entry.id} and p."servings" = ${old}
+					and p."plan_id" in (select m."id" from "meal_plans" m where m."user_id" = ${userId})
+				for update`;
+
 			if (update.kind === 'cook') {
-				const spare = update.cooked - update.eaten;
-				// New free = old free + (new spare - old spare); a thrown-out batch stays at 0 free.
+				const oldCooked = entry.cookBatchCooked ?? old;
+				const delta = update.cooked - update.eaten - (oldCooked - old);
+				// Free changes by the change in spare. A thrown-out batch stays at 0 free, but its spare
+				// still may not drop below the leftovers planned from it.
 				const result = await db.execute<{ id: string }>(sql`
-					with b as (
+					with pm as (${lockEntry}), b as (
 						update "leftover_batches" lb
 						set "servings_cooked" = ${update.cooked},
 							"servings_remaining" = case when lb."thrown_out_at" is null
-								then lb."servings_remaining" + (${spare} - (lb."servings_cooked" - pm."servings"))
-								else 0 end
-						from "planned_meals" pm
-						where pm."id" = lb."cook_meal_id" and lb."cook_meal_id" = ${entry.id}
-							and lb."user_id" = ${userId}
-							and (lb."thrown_out_at" is not null
-								or lb."servings_remaining" + (${spare} - (lb."servings_cooked" - pm."servings")) >= 0)
+								then lb."servings_remaining" + ${delta} else 0 end
+						from pm
+						where lb."cook_meal_id" = pm."id" and lb."user_id" = ${userId}
+							and lb."servings_cooked" = ${oldCooked}
+							and case when lb."thrown_out_at" is null
+								then lb."servings_remaining" + ${delta} >= 0
+								else ${update.cooked - update.eaten} >= (select coalesce(sum(d."servings"), 0)
+									from "planned_meals" d where d."leftover_batch_id" = lb."id") end
 						returning lb."id"
 					)
 					update "planned_meals" set "servings" = ${update.eaten}
 					where "id" = ${entry.id} and exists (select 1 from b)
 					returning "id"`);
-				if (result.rows.length === 0) {
-					if (!entry.cookBatchId) return { ok: false, reason: 'not_found' };
-					return { ok: false, reason: 'below_drawn', drawn: await drawnFor(entry.cookBatchId) };
-				}
-				return { ok: true };
+				if (result.rows.length > 0) return { ok: true };
+				const now = await loadEntry(userId, entry.id);
+				if (!now || !now.cookBatchId) return { ok: false, reason: 'not_found' };
+				if (now.servings !== old || now.cookBatchCooked !== oldCooked)
+					return { ok: false, reason: 'changed' };
+				return { ok: false, reason: 'below_drawn', drawn: await drawnFor(now.cookBatchId) };
 			}
 
 			// Leftover: move the difference between the batch and the entry in one statement.
 			if (entry.drawBatchThrown) return { ok: false, reason: 'gone' };
+			const delta = update.servings - old;
 			const result = await db.execute<{ id: string }>(sql`
-				with pm as (
-					select p."id", p."servings", p."leftover_batch_id" from "planned_meals" p
-					where p."id" = ${entry.id} and p."is_leftover"
-						and p."plan_id" in (select m."id" from "meal_plans" m where m."user_id" = ${userId})
-				), b as (
+				with pm as (${lockEntry}), b as (
 					update "leftover_batches" lb
-					set "servings_remaining" = lb."servings_remaining" - (${update.servings} - pm."servings")
+					set "servings_remaining" = lb."servings_remaining" - ${delta}
 					from pm
 					where lb."id" = pm."leftover_batch_id" and lb."user_id" = ${userId}
 						and lb."thrown_out_at" is null
-						and lb."servings_remaining" - (${update.servings} - pm."servings") >= 0
+						and lb."servings_remaining" - ${delta} >= 0
 					returning lb."id"
 				)
 				update "planned_meals" set "servings" = ${update.servings}
 				where "id" = ${entry.id} and exists (select 1 from b)
 				returning "id"`);
-			if (result.rows.length === 0) {
-				const batch = entry.drawBatchId ? await loadBatch(userId, entry.drawBatchId) : null;
-				if (!batch) return { ok: false, reason: 'not_found' };
-				if (batch.thrownOutAt) return { ok: false, reason: 'gone' };
-				return { ok: false, reason: 'not_enough', free: batch.free + entry.servings };
-			}
-			return { ok: true };
+			if (result.rows.length > 0) return { ok: true };
+			const now = await loadEntry(userId, entry.id);
+			if (!now) return { ok: false, reason: 'not_found' };
+			if (now.servings !== old) return { ok: false, reason: 'changed' };
+			const batch = now.drawBatchId ? await loadBatch(userId, now.drawBatchId) : null;
+			if (!batch) return { ok: false, reason: 'not_found' };
+			if (batch.thrownOutAt) return { ok: false, reason: 'gone' };
+			return { ok: false, reason: 'not_enough', free: batch.free + old };
 		},
 
 		/**

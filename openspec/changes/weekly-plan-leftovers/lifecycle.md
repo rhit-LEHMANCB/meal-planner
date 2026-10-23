@@ -2,7 +2,7 @@
 
 - Branch: `weekly-plan-leftovers`
 - Stage: 4 Review
-- Review round: 0 of 3
+- Review round: 1 of 3
 - QA cycle: 0 of 3
 - Started: 2026-10-23
 
@@ -103,11 +103,23 @@ Deviation: the UI was not driven in `npm run dev`. The local `.env` points at pr
 
 ## Review rounds
 
-(none yet; one line per round: blockers, majors, fixed, rejected with reason)
+- Round 1 (fresh Sonnet Explore reviewer): 0 blockers, 3 majors, 5 minors, 1 nit.
+  - Majors, all fixed:
+    - (1) Creating a custom food and adding it were two writes. Now one `db.batch`, and a new food must use `g`.
+    - (2) Concurrent edits of the same entry could move a batch by a stale delta. The edit now locks the entry `FOR UPDATE` and requires the servings it read, refusing with "changed" otherwise.
+    - (3) Missing tests: create-and-add atomicity, thrown-out batch remove/edit, concurrent edits of a cook and a leftover. Added.
+  - Minors fixed:
+    - A thrown-out cook's spare can't drop below drawn.
+    - Dates are limited to 2000–2099.
+    - A stable `id` tiebreak in slot order.
+    - Food search matches every word (the nit).
+  - Minors deferred: confirm-then-delete race on removing a cook; the 60-day query window in `listBatches`.
 
 ## Deferred findings
 
-(minors, nits and known gaps to turn into issues at wrap-up)
+- Removing a cook: a leftover drawn between the confirmation check and the delete is removed without being listed (narrow race, `src/lib/server/plan.ts` `removeEntry`).
+- `listBatches` only looks at batches cooked in the last 60 days unless they still have free servings, so a 60+ day old batch with no free servings but a leftover planned today or later is not shown in the fridge.
+- Position within a slot can tie under concurrent adds (order then falls back to id).
 
 ## QA report
 

@@ -1,7 +1,7 @@
 // Runs against a real Postgres: the Neon `dev` branch, through TEST_DATABASE_URL. Never production.
 // Skipped when the variable is unset (CI does not set it).
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { inArray } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { todayIso } from '$lib/domain/plan';
 import { parseRecipeForm } from '$lib/domain/recipe-form';
 import { createDb } from './db';
@@ -46,8 +46,14 @@ describe.skipIf(!url)('plan store (Neon dev branch)', () => {
 	let chili = '';
 	let bobRecipe = '';
 
+	/** The batch's free servings, read straight from its row. */
 	const free = async (batchId: string) =>
-		(await plan.listBatches(alice, MON)).find((b) => b.id === batchId)?.free;
+		(
+			await db
+				.select({ free: leftoverBatches.servingsRemaining })
+				.from(leftoverBatches)
+				.where(eq(leftoverBatches.id, batchId))
+		)[0]?.free;
 
 	const cook = async (date = MON, slot: 'dinner' | 'lunch' = 'dinner', cooked = 6, eaten = 2) => {
 		const result = await plan.addCook(alice, { date, slot, recipeId: chili, cooked, eaten });
@@ -256,6 +262,7 @@ describe.skipIf(!url)('plan store (Neon dev branch)', () => {
 			date: MON,
 			slot: 'breakfast',
 			foodId,
+			newFood: null,
 			amount: 170,
 			unit: 'g'
 		});
@@ -270,13 +277,27 @@ describe.skipIf(!url)('plan store (Neon dev branch)', () => {
 		});
 
 		expect(
-			await plan.addFood(alice, { date: MON, slot: 'breakfast', foodId, amount: 1, unit: 'cup' })
+			await plan.addFood(alice, {
+				date: MON,
+				slot: 'breakfast',
+				foodId,
+				newFood: null,
+				amount: 1,
+				unit: 'cup'
+			})
 		).toEqual({
 			ok: false,
 			reason: 'bad_unit'
 		});
 		expect(
-			await plan.addFood(bob, { date: MON, slot: 'breakfast', foodId, amount: 1, unit: 'g' })
+			await plan.addFood(bob, {
+				date: MON,
+				slot: 'breakfast',
+				foodId,
+				newFood: null,
+				amount: 1,
+				unit: 'g'
+			})
 		).toEqual({
 			ok: false,
 			reason: 'not_found'
@@ -296,6 +317,7 @@ describe.skipIf(!url)('plan store (Neon dev branch)', () => {
 			date: WED,
 			slot: 'dinner',
 			foodId,
+			newFood: null,
 			amount: 80,
 			unit: 'g'
 		});
@@ -314,5 +336,88 @@ describe.skipIf(!url)('plan store (Neon dev branch)', () => {
 		const later = await plan.listBatches(alice, '2030-01-10');
 		expect(later.find((b) => b.id === batchId)).toMatchObject({ state: 'finished', leftOn: TUE });
 		expect(later.find((b) => b.id === nothingSpare.batchId)).toBeUndefined();
+	});
+
+	it('creates a custom food and adds it in one step, or neither', async () => {
+		const newFood = { name: `Skyr ${run}`, ...per100 };
+		const ok = await plan.addFood(alice, {
+			date: MON,
+			slot: 'breakfast',
+			foodId: null,
+			newFood,
+			amount: 150,
+			unit: 'g'
+		});
+		expect(ok.ok).toBe(true);
+		expect((await foodStore.search(alice, `skyr ${run}`)).map((f) => f.name)).toEqual([
+			newFood.name
+		]);
+		const entry = (await plan.getWeek(alice, MON)).find((e) => ok.ok && e.id === ok.value);
+		expect(entry).toMatchObject({ kind: 'food', title: newFood.name, amount: 150, unit: 'g' });
+
+		const refused = await plan.addFood(alice, {
+			date: MON,
+			slot: 'breakfast',
+			foodId: null,
+			newFood: { name: `Kefir ${run}`, ...per100 },
+			amount: 1,
+			unit: 'cup'
+		});
+		expect(refused).toEqual({ ok: false, reason: 'bad_unit' });
+		expect(await foodStore.search(alice, `kefir ${run}`)).toEqual([]);
+	});
+
+	it('gives no servings back from a thrown-out batch', async () => {
+		const { entryId, batchId } = await cook();
+		const first = await plan.addLeftover(alice, { date: TUE, slot: 'lunch', batchId, servings: 2 });
+		const second = await plan.addLeftover(alice, {
+			date: WED,
+			slot: 'lunch',
+			batchId,
+			servings: 1
+		});
+		if (!first.ok || !second.ok) throw new Error('draw failed');
+		await plan.throwOut(alice, batchId);
+
+		expect(await plan.updateEntry(alice, first.value, { kind: 'leftover', servings: 1 })).toEqual({
+			ok: false,
+			reason: 'gone'
+		});
+		expect(await plan.removeEntry(alice, second.value)).toEqual({ ok: true });
+		expect(await free(batchId)).toBe(0);
+		// Spare may still not drop below what is planned (2 left after the removal).
+		expect(await plan.updateEntry(alice, entryId, { kind: 'cook', cooked: 3, eaten: 2 })).toEqual({
+			ok: false,
+			reason: 'below_drawn',
+			drawn: 2
+		});
+		expect(await plan.updateEntry(alice, entryId, { kind: 'cook', cooked: 4, eaten: 2 })).toEqual({
+			ok: true
+		});
+		expect(await free(batchId)).toBe(0);
+	});
+
+	it('keeps free servings right when the same leftover is edited twice at once', async () => {
+		const { batchId } = await cook();
+		const added = await plan.addLeftover(alice, { date: TUE, slot: 'lunch', batchId, servings: 1 });
+		if (!added.ok) throw new Error('draw failed');
+		const results = await Promise.all([
+			plan.updateEntry(alice, added.value, { kind: 'leftover', servings: 2 }),
+			plan.updateEntry(alice, added.value, { kind: 'leftover', servings: 3 })
+		]);
+		expect(results.some((r) => r.ok)).toBe(true);
+		const entry = (await plan.getWeek(alice, MON)).find((e) => e.id === added.value);
+		// Whichever edit won, free = spare (4) minus what the entry now holds.
+		expect(await free(batchId)).toBe(4 - (entry?.servings ?? 0));
+	});
+
+	it('keeps a cook and its batch consistent when edited twice at once', async () => {
+		const { entryId, batchId } = await cook();
+		await Promise.all([
+			plan.updateEntry(alice, entryId, { kind: 'cook', cooked: 8, eaten: 2 }),
+			plan.updateEntry(alice, entryId, { kind: 'cook', cooked: 5, eaten: 3 })
+		]);
+		const entry = (await plan.getWeek(alice, MON)).find((e) => e.id === entryId);
+		expect(await free(batchId)).toBe((entry?.cooked ?? 0) - (entry?.servings ?? 0));
 	});
 });
