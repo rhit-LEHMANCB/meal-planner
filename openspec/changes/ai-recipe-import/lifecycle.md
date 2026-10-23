@@ -1,7 +1,7 @@
 # Lifecycle: ai-recipe-import
 
 - Branch: `ai-recipe-import`
-- Stage: 1 Interview
+- Stage: 2 Gate A (waiting for approval)
 - Review round: 0 of 3
 - QA cycle: 0 of 3
 - Started: 2026-10-23
@@ -89,7 +89,21 @@ Accepted preflight gaps: none
 
 ## Preflight
 
-(table of checks and results, from stage 2)
+Run 2026-10-23. GitHub backend: `gh`.
+
+| Check                              | Result                                                                                                                                                                                    |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| git author, commit, push           | OK: commit made and `ai-recipe-import` pushed to origin                                                                                                                                   |
+| GitHub backend                     | OK: `gh` logged in as rhit-LEHMANCB with `repo` and `workflow` scopes                                                                                                                     |
+| Playwright `qa` project + browsers | OK: Playwright 1.64.1, chromium installed, `qa` project lists 9 smoke tests                                                                                                               |
+| QA credentials                     | OK: `.env.qa` copied from the main checkout (gitignored, untracked, mode 600), all four variables set                                                                                    |
+| Dev site sign-up probe             | OK: `/signup` on the dev site answers "already exists" for both QA emails (not "invite-only")                                                                                            |
+| Dev backend health                 | OK: `/api/health` returns `{"db":"ok"}`                                                                                                                                                   |
+| Local checks                       | OK: lint, check (0 errors), test (107 passed, including integration tests), build, check:server, check:migrations                                                                          |
+| Test database                      | OK: worktree `.env` holds only CI placeholders and `TEST_DATABASE_URL`, verified to be the Neon `dev` branch endpoint and not production                                                  |
+| Node version                       | GAP: Node 22.23.2 installed, no version manager (`nvm` not found); `.nvmrc` and `engines` say 24. Checks pass on 22 and CI runs on 24. `npx node@24` works if a step needs 24 specifically |
+| GitHub environment secrets         | OK: none needed; `develop` and `production` environments exist                                                                                                                            |
+| Runtime config                     | Note: `BODY_SIZE_LIMIT=6M` is added to `apphosting.yaml` in this change (plain value, both backends); no secrets                                                                          |
 
 ## Review rounds
 
