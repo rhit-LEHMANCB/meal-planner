@@ -1,18 +1,9 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { parseRecipeForm, type RecipeFormValues } from '$lib/domain/recipe-form';
+import { EMPTY_FORM, parseRecipeForm } from '$lib/domain/recipe-form';
 import { requireUserId } from '$lib/server/auth';
 import { getRecipeStore } from '$lib/server/recipes';
 
-const EMPTY: RecipeFormValues = {
-	title: '',
-	servings: '',
-	totalMinutes: '',
-	sourceUrl: '',
-	ingredients: '',
-	steps: ''
-};
-
-export const load = () => ({ values: EMPTY });
+export const load = () => ({ values: EMPTY_FORM });
 
 export const actions = {
 	default: async ({ request, locals }) => {

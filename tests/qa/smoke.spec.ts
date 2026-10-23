@@ -54,7 +54,8 @@ test('create, view and edit a recipe', async ({ page }) => {
 	await page.getByLabel('Servings').fill('4');
 	await page.getByLabel('Total time').fill('45');
 	await page.getByLabel('Source link').fill('https://example.com/qa');
-	await page.getByLabel('Ingredients').fill('first\n\n  second  \nthird');
+	// Pasted lines become ingredient rows; blank lines are dropped.
+	await page.getByLabel('Paste ingredient lines').fill('first\n\n  second  \nthird');
 	await page.getByLabel('Steps').fill('Do one.\nDo two.');
 	await page.getByRole('button', { name: 'Save recipe' }).click();
 
@@ -73,6 +74,12 @@ test('create, view and edit a recipe', async ({ page }) => {
 	await page.getByRole('button', { name: 'Save changes' }).click();
 	await expect(page.getByRole('heading', { name: `${title}-edited` })).toBeVisible();
 	await expect(page.getByText('Only step.')).toBeVisible();
+	// Editing other fields leaves the ingredient rows as they were.
+	const afterEdit = await page
+		.getByRole('region', { name: 'Ingredients' })
+		.locator('li')
+		.allTextContents();
+	expect(afterEdit.map((s) => s.trim())).toEqual(['first', 'second', 'third']);
 });
 
 test('the form rejects a bad source link without saving', async ({ page }) => {

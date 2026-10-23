@@ -22,6 +22,8 @@ jobs:
       - run: npm run lint
       - run: npm run check
       - run: npm run check:migrations
+      # Component tests (*.svelte.spec.ts) run in headless Chromium through Vitest's browser mode.
+      - run: npx playwright install --with-deps chromium
       - run: npm test
       - run: npm run build
       - run: npm run check:server

@@ -69,9 +69,22 @@ export const recipeIngredients = pgTable('recipe_ingredients', {
 	position: integer('position').notNull().default(0),
 	quantity: numeric('quantity', { precision: 9, scale: 3 }),
 	unit: text('unit'),
+	/** Plain ingredient name without amount or prep notes. Null on rows saved before structured rows. */
+	name: text('name'),
 	note: text('note'),
-	/** 'matched' | 'check' | 'skipped': drives the chip on the import review screen. */
+	/**
+	 * 'parsed' | 'check' | 'skipped': drives the row chip. 'unparsed' marks rows saved as plain
+	 * text before structured rows existed; the edit form pre-fills them with the line parser.
+	 */
 	matchStatus: text('match_status').notNull().default('check')
+});
+
+/** One row per user: the AI import count for `day` (UTC) and the time of their last import. */
+export const importUsage = pgTable('import_usage', {
+	userId: text('user_id').primaryKey(),
+	day: date('day').notNull(),
+	aiCount: integer('ai_count').notNull().default(0),
+	lastImportAt: timestamp('last_import_at', { withTimezone: true }).notNull()
 });
 
 export const mealPlans = pgTable(

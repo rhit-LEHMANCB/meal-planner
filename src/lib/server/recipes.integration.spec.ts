@@ -2,7 +2,7 @@
 // Skipped when the variable is unset (CI does not set it).
 import { afterAll, describe, expect, it } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
-import { parseRecipeForm } from '$lib/domain/recipe-form';
+import { parseRecipeForm, recipeToFormValues } from '$lib/domain/recipe-form';
 import { createDb } from './db';
 import { recipeIngredients, recipes } from './db/schema';
 import { makeRecipeStore } from './recipes';
@@ -18,23 +18,29 @@ const run = `it-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const alice = `${run}-alice`;
 const bob = `${run}-bob`;
 
-const input = (overrides: Record<string, string> = {}) => {
-	const result = parseRecipeForm(
-		new Map(
-			Object.entries({
-				title: 'Turkey Chili',
-				servings: '6',
-				totalMinutes: '55',
-				sourceUrl: 'https://example.com/chili',
-				ingredients: 'flour\n\n  eggs  \nmilk',
-				steps: 'Mix.\nBake.',
-				...overrides
-			})
-		)
-	);
+type Overrides = Record<string, string> & { ingredients?: string };
+
+/** A valid recipe. `ingredients` is one row per line, split by the line parser as "Paste lines" would. */
+const input = (overrides: Overrides = {}) => {
+	const { ingredients = 'flour\n\n  eggs  \nmilk', ...fields } = overrides;
+	const data = new FormData();
+	for (const [k, v] of Object.entries({
+		title: 'Turkey Chili',
+		servings: '6',
+		totalMinutes: '55',
+		sourceUrl: 'https://example.com/chili',
+		steps: 'Mix.\nBake.',
+		pastedLines: ingredients,
+		...fields
+	}))
+		data.set(k, v);
+	const result = parseRecipeForm(data);
 	if (!result.ok) throw new Error('test input is invalid');
 	return result.value;
 };
+
+const names = (recipe: Awaited<ReturnType<ReturnType<typeof makeRecipeStore>['get']>>) =>
+	recipe?.ingredients.map((i) => i.rawText);
 
 describe.skipIf(!url)('recipe store (Neon dev branch)', () => {
 	const db = createDb(url ?? '');
@@ -53,9 +59,86 @@ describe.skipIf(!url)('recipe store (Neon dev branch)', () => {
 			servings: 6,
 			totalMinutes: 55,
 			sourceUrl: 'https://example.com/chili',
-			ingredients: ['flour', 'eggs', 'milk'],
 			instructions: ['Mix.', 'Bake.']
 		});
+		expect(names(recipe)).toEqual(['flour', 'eggs', 'milk']);
+	});
+
+	it('stores amount, unit, name, note and status for each row', async () => {
+		const id = await store.create(
+			alice,
+			input({ ingredients: '1 can (15 oz) kidney beans, drained\n1 1/2 cups rice\nSalt to taste' })
+		);
+		expect((await store.get(alice, id))?.ingredients).toEqual([
+			{
+				rawText: '1 can (15 oz) kidney beans, drained',
+				quantity: 1,
+				unit: 'can',
+				name: 'kidney beans',
+				note: '15 oz, drained',
+				status: 'parsed'
+			},
+			{
+				rawText: '1 1/2 cups rice',
+				quantity: 1.5,
+				unit: 'cup',
+				name: 'rice',
+				note: null,
+				status: 'parsed'
+			},
+			{
+				rawText: 'Salt to taste',
+				quantity: null,
+				unit: null,
+				name: 'Salt',
+				note: 'to taste',
+				status: 'skipped'
+			}
+		]);
+	});
+
+	it('keeps every row unchanged when an edit only changes the title', async () => {
+		const id = await store.create(
+			alice,
+			input({ ingredients: '2 tbsp chili powder, divided\n1 lb turkey' })
+		);
+		const before = await store.get(alice, id);
+		const values = recipeToFormValues(before!);
+		const data = new FormData();
+		data.set('title', 'Retitled');
+		data.set('servings', values.servings);
+		data.set('steps', values.steps);
+		for (const row of values.ingredients) {
+			data.append('ingredientRaw', row.raw);
+			data.append('ingredientAmount', row.amount);
+			data.append('ingredientUnit', row.unit);
+			data.append('ingredientName', row.name);
+			data.append('ingredientNote', row.note);
+		}
+		const result = parseRecipeForm(data);
+		if (!result.ok) throw new Error('edit is invalid');
+		await store.update(alice, id, result.value);
+
+		const after = await store.get(alice, id);
+		expect(after?.title).toBe('Retitled');
+		expect(after?.ingredients).toEqual(before?.ingredients);
+	});
+
+	it("keeps a row's details when rows are reordered", async () => {
+		const id = await store.create(
+			alice,
+			input({ ingredients: '1 lb turkey\n2 tbsp chili powder, divided' })
+		);
+		const [turkey, chili] = (await store.get(alice, id))!.ingredients;
+		await store.update(alice, id, {
+			...input(),
+			ingredients: [chili, turkey].map(({ status, ...rest }) => ({
+				...rest,
+				name: rest.name ?? '',
+				status: status === 'unparsed' ? 'check' : status
+			}))
+		});
+		expect((await store.get(alice, id))?.ingredients).toEqual([chili, turkey]);
 	});
 
 	it('saves a recipe with no ingredients', async () => {
@@ -99,9 +182,9 @@ describe.skipIf(!url)('recipe store (Neon dev branch)', () => {
 		expect(await store.get(alice, id)).toMatchObject({
 			title: 'Renamed',
 			totalMinutes: null,
-			ingredients: ['one', 'two'],
 			instructions: ['Only step.']
 		});
+		expect(names(await store.get(alice, id))).toEqual(['one', 'two']);
 	});
 
 	it('can clear every ingredient on edit', async () => {
@@ -117,10 +200,9 @@ describe.skipIf(!url)('recipe store (Neon dev branch)', () => {
 		expect(await store.update(bob, id, input({ title: 'Hijacked' }))).toBe(false);
 		expect(await store.remove(bob, id)).toBe(false);
 
-		expect(await store.get(alice, id)).toMatchObject({
-			title: 'Private',
-			ingredients: ['flour', 'eggs', 'milk']
-		});
+		const own = await store.get(alice, id);
+		expect(own?.title).toBe('Private');
+		expect(names(own)).toEqual(['flour', 'eggs', 'milk']);
 	});
 
 	it('treats a malformed id like a missing recipe', async () => {

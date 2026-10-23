@@ -33,6 +33,7 @@
 				<button class="btn btn-secondary min-h-11" type="submit">Search</button>
 			</form>
 		{/if}
+		<a class="btn btn-secondary min-h-11" href={resolve('/recipes/import')}>Import recipe</a>
 		<a class="btn btn-primary min-h-11" href={resolve('/recipes/new')}>Add recipe</a>
 	</header>
 
@@ -44,7 +45,10 @@
 			<p class="max-w-[520px] text-muted">
 				You have no recipes yet. Add your first one to start planning meals.
 			</p>
-			<a class="btn btn-primary min-h-11" href={resolve('/recipes/new')}>Add your first recipe</a>
+			<div class="flex flex-wrap gap-3">
+				<a class="btn btn-primary min-h-11" href={resolve('/recipes/new')}>Add your first recipe</a>
+				<a class="btn btn-secondary min-h-11" href={resolve('/recipes/import')}>Import a recipe</a>
+			</div>
 		</section>
 	{:else if data.recipes.length === 0}
 		<section class="card flex flex-col items-start gap-2.5 p-7">
