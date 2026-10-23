@@ -37,9 +37,10 @@ Early development: one deployed site (production) and a separate dev database br
 - `DATABASE_URL` is the pooled string the app uses; `DATABASE_URL_UNPOOLED` is the direct one drizzle-kit uses for migrations.
 - Neon branches: `production` (default, the real database) and `dev` (a child of production with no expiry, for rehearsing migrations and running integration tests). Reset `dev` from production with `neon branches reset dev --parent --project-id plain-wind-36684347` when it drifts. `neon.ts` gives other new branches a 7 day TTL.
 - `npm run db:smoke` proves the connection with a write, read and delete.
+- `ALLOWED_EMAILS` is a comma-separated list of the emails allowed to sign up and sign in (case-insensitive). Only people on it get an account or a session; edit it with `firebase apphosting:secrets:set ALLOWED_EMAILS` and roll out again.
 - `/api/health` returns `{"db":"ok"}` when the database is reachable.
 - There is still no dev _site_, only the dev database branch. Point integration tests and QA at the `dev` Neon branch, never `production`, and do not run `dev-lifecycle` QA until a dev backend exists.
-- App Hosting backend id: `meal-planner`, live branch `production`. Secrets (`DATABASE_URL`, `ANTHROPIC_API_KEY`, `FB_CLIENT_EMAIL`, `FB_PRIVATE_KEY`) live in Cloud Secret Manager (`firebase apphosting:secrets:set <NAME>`), not in GitHub. There is no deploy GitHub Action: App Hosting builds and rolls out itself. GitHub Actions only runs `CI` and the OpenSpec archive.
+- App Hosting backend id: `meal-planner`, live branch `production`. Secrets (`DATABASE_URL`, `ANTHROPIC_API_KEY`, `FB_CLIENT_EMAIL`, `FB_PRIVATE_KEY`, `ALLOWED_EMAILS`) live in Cloud Secret Manager (`firebase apphosting:secrets:set <NAME>`), not in GitHub. There is no deploy GitHub Action: App Hosting builds and rolls out itself. GitHub Actions only runs `CI` and the OpenSpec archive.
 - `dev-lifecycle` still waits on a `firebase-hosting-merge.yml` run for the dev deploy. That workflow no longer exists, so rework that stage when a dev backend is added.
 
 ## Migrations

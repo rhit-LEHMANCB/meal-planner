@@ -2,9 +2,9 @@
 
 ## 1. Allowlist, schema and config
 
-- [ ] 1.1 Add `src/lib/domain/allowlist.ts` with `isAllowed(email, list)` and `parseAllowlist(raw)` and a spec covering case, spaces, empty list and non-members; verify `npm test` passes
-- [ ] 1.2 Add `position` to `recipe_ingredients` in `schema.ts`, run `npm run db:generate`, and verify the generated SQL only adds that column
-- [ ] 1.3 Add `ALLOWED_EMAILS` to `apphosting.yaml` as a runtime secret and to `.env.example`, and document it in `CLAUDE.md`; verify `npm run build` still passes
+- [x] 1.1 Add `src/lib/domain/allowlist.ts` with `isAllowed(email, list)` and `parseAllowlist(raw)` and a spec covering case, spaces, empty list and non-members; verify `npm test` passes
+- [x] 1.2 Add `position` to `recipe_ingredients` in `schema.ts`, run `npm run db:generate`, and verify the generated SQL only adds that column
+- [x] 1.3 Add `ALLOWED_EMAILS` to `apphosting.yaml` as a runtime secret and to `.env.example`, and document it in `CLAUDE.md`; verify `npm run build` still passes
 
 ## 2. Session, hook and sign-out
 

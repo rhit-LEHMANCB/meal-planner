@@ -8,6 +8,13 @@
       "when": 1792715761312,
       "tag": "0000_bitter_giant_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792722721790,
+      "tag": "0001_violet_captain_midlands",
+      "breakpoints": true
     }
   ]
 }

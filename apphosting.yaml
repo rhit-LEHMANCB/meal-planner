@@ -49,3 +49,7 @@ env:
   - variable: FB_PRIVATE_KEY
     secret: FB_PRIVATE_KEY
     availability: [RUNTIME]
+  # Comma-separated emails allowed to create an account and sign in.
+  - variable: ALLOWED_EMAILS
+    secret: ALLOWED_EMAILS
+    availability: [RUNTIME]
