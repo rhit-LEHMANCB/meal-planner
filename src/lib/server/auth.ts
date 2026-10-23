@@ -18,11 +18,3 @@ export const checkAccess = (
 	if (claims.email_verified !== true) return 'unverified';
 	return null;
 };
-
-/** Pages a signed-out visitor can open. Everything else needs a session. */
-const AUTH_PAGES = ['/signin', '/signup', '/reset'];
-
-export const isAuthPage = (pathname: string) => AUTH_PAGES.includes(pathname);
-
-export const isPublicPath = (pathname: string) =>
-	isAuthPage(pathname) || pathname === '/api' || pathname.startsWith('/api/');

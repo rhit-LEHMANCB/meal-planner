@@ -1,5 +1,6 @@
 import { getAdminAuth } from '$lib/server/admin';
-import { checkAccess, getAllowlist, isAuthPage, isPublicPath } from '$lib/server/auth';
+import { isAuthPage, isPublicPath } from '$lib/domain/paths';
+import { checkAccess, getAllowlist } from '$lib/server/auth';
 import { endSession, SESSION_COOKIE } from '$lib/server/session';
 import { redirect, type Handle } from '@sveltejs/kit';
 

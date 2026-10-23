@@ -14,10 +14,10 @@
 
 ## 3. Auth screens
 
-- [ ] 3.1 Build the sign-in page from the mockup, with the client SDK sign-in, the `/api/session` call, and the three failure messages from the spec; verify against the sign-in scenarios by hand
-- [ ] 3.2 Build the sign-up page and server action (allowlist check, `createUser`, then client verification email); add action tests for allowlisted, not-allowlisted, case-insensitive and short-password scenarios
-- [ ] 3.3 Build the reset page using `sendPasswordResetEmail` with the same message for any address; verify by hand with a known and an unknown address
-- [ ] 3.4 Add a Sign out control to the layout and hide the sidebar on the auth pages; verify by hand at phone and desktop widths
+- [x] 3.1 Build the sign-in page from the mockup, with the client SDK sign-in, the `/api/session` call, and the three failure messages from the spec; verify against the sign-in scenarios by hand
+- [x] 3.2 Build the sign-up page and server action (allowlist check, `createUser`, then client verification email); add action tests for allowlisted, not-allowlisted, case-insensitive and short-password scenarios
+- [x] 3.3 Build the reset page using `sendPasswordResetEmail` with the same message for any address; verify by hand with a known and an unknown address
+- [x] 3.4 Add a Sign out control to the layout and hide the sidebar on the auth pages; verify by hand at phone and desktop widths
 
 ## 4. Recipe data layer
 

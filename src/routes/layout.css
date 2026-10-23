@@ -9,16 +9,67 @@
 	--color-ink: #1b2a22;
 	--color-muted: #52645a;
 	--color-line: #dde3da;
+	--color-edge: #c9d2c6;
 	--color-herb: #2f6b4f;
 	--color-herb-dark: #1f4d38;
 	--color-herb-tint: #eaf1e6;
 	--color-tomato: #d9482b;
 	--color-leftover: #b7791f;
 	--color-leftover-tint: #fbefd9;
+	--color-leftover-ink: #3d2a08;
+	--color-danger: #b23a20;
+	--color-danger-ink: #7a2412;
+	--color-danger-tint: #fbe5e0;
 }
 
 body {
 	background: var(--color-ground);
 	color: var(--color-ink);
 	font-family: var(--font-sans);
+}
+
+/* Shared form and button styles, so pages stay readable. */
+@layer components {
+	.label {
+		@apply text-[13px] font-bold text-muted;
+	}
+	.hint {
+		@apply text-[13px] text-muted;
+	}
+	.field-error {
+		@apply text-[13px] font-medium text-danger-ink;
+	}
+	.input {
+		@apply min-h-12 w-full rounded-[10px] border border-edge bg-white px-3 text-base text-ink;
+	}
+	.input[aria-invalid='true'] {
+		@apply border-2 border-danger;
+	}
+	.btn {
+		@apply inline-flex min-h-12 cursor-pointer items-center justify-center rounded-[10px] px-6 text-[15px] font-bold no-underline disabled:cursor-not-allowed disabled:opacity-60;
+	}
+	.btn-primary {
+		@apply bg-herb text-white hover:bg-herb-dark;
+	}
+	.btn-secondary {
+		@apply border border-edge bg-white text-ink hover:bg-herb-tint;
+	}
+	.btn-danger {
+		@apply bg-danger text-white;
+	}
+	.notice {
+		@apply rounded-xl px-4 py-3.5 text-sm leading-relaxed;
+	}
+	.notice-warn {
+		@apply bg-leftover-tint text-leftover-ink;
+	}
+	.notice-error {
+		@apply bg-danger-tint text-danger-ink;
+	}
+	.notice-ok {
+		@apply bg-herb-tint text-herb-dark;
+	}
+	.card {
+		@apply rounded-2xl border border-line bg-white;
+	}
 }
