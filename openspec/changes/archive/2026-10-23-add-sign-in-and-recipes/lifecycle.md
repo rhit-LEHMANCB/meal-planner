@@ -1,7 +1,7 @@
 # Lifecycle: add-sign-in-and-recipes
 
 - Branch: `add-sign-in-and-recipes`
-- Stage: 3 Implement (complete); waiting on human verification
+- Stage: **complete (archived automatically on 2026-10-23 after the production release `5d72d39`)**
 - Review round: 0 of 3
 - QA cycle: 0 of 3
 - Started: 2026-10-23
@@ -56,3 +56,6 @@ Before the first rollout: set the `ALLOWED_EMAILS` secret (`firebase apphosting:
 ## Halted
 
 (not halted)
+
+## Archive
+Archived automatically on 2026-10-23 after the production release `5d72d39` ([workflow run](https://github.com/rhit-LEHMANCB/meal-planner/actions/runs/39894706439)). That marks this lifecycle complete.
