@@ -1,7 +1,7 @@
-import { and, asc, desc, eq, ilike, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, inArray, sql } from 'drizzle-orm';
 import type { IngredientInput, RecipeInput, StoredIngredient } from '$lib/domain/recipe-form';
 import { getDb, type Db } from './db';
-import { recipeIngredients, recipes } from './db/schema';
+import { leftoverBatches, mealPlans, plannedMeals, recipeIngredients, recipes } from './db/schema';
 
 export interface RecipeSummary {
 	id: string;
@@ -22,6 +22,8 @@ export interface Recipe {
 	instructions: string[];
 	ingredients: StoredIngredient[];
 	createdAt: Date;
+	/** Planned meals (cooks and leftovers) that use this recipe; deleting removes them too. */
+	plannedCount: number;
 }
 
 const STATUSES = new Set(['parsed', 'check', 'skipped', 'unparsed']);
@@ -107,6 +109,15 @@ export const makeRecipeStore = (db: Db) => {
 					: 'unparsed'
 			}));
 
+			const [planned] = await db
+				.select({ count: sql<number>`count(*)::int` })
+				.from(plannedMeals)
+				.innerJoin(
+					mealPlans,
+					and(eq(mealPlans.id, plannedMeals.planId), eq(mealPlans.userId, userId))
+				)
+				.where(eq(plannedMeals.recipeId, recipe.id));
+
 			return {
 				id: recipe.id,
 				title: recipe.title,
@@ -115,7 +126,8 @@ export const makeRecipeStore = (db: Db) => {
 				sourceUrl: recipe.sourceUrl,
 				instructions: recipe.instructions,
 				ingredients,
-				createdAt: recipe.createdAt
+				createdAt: recipe.createdAt,
+				plannedCount: planned?.count ?? 0
 			};
 		},
 
@@ -181,14 +193,35 @@ export const makeRecipeStore = (db: Db) => {
 			return true;
 		},
 
-		/** Deletes the recipe; its ingredient lines go with it. False if the owner has no such recipe. */
+		/**
+		 * Deletes the recipe; its ingredient lines go with it, and so do its planned meals (cooks and
+		 * leftovers, which carry their batch's recipe) and its leftover batches. This is the one place
+		 * outside the plan store that writes plan tables. False if the owner has no such recipe.
+		 */
 		async remove(userId: string, id: string): Promise<boolean> {
 			if (!UUID.test(id)) return false;
-			const deleted = await db
-				.delete(recipes)
+			// Ownership never changes, so checking first and then writing in one batch is safe.
+			const [existing] = await db
+				.select({ id: recipes.id })
+				.from(recipes)
 				.where(owned(userId, id))
-				.returning({ id: recipes.id });
-			return deleted.length > 0;
+				.limit(1);
+			if (!existing) return false;
+
+			const ownedPlans = db
+				.select({ id: mealPlans.id })
+				.from(mealPlans)
+				.where(eq(mealPlans.userId, userId));
+			await db.batch([
+				db
+					.delete(plannedMeals)
+					.where(and(eq(plannedMeals.recipeId, id), inArray(plannedMeals.planId, ownedPlans))),
+				db
+					.delete(leftoverBatches)
+					.where(and(eq(leftoverBatches.recipeId, id), eq(leftoverBatches.userId, userId))),
+				db.delete(recipes).where(owned(userId, id))
+			]);
+			return true;
 		}
 	};
 };

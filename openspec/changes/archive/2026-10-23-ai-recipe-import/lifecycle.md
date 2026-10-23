@@ -1,7 +1,7 @@
 # Lifecycle: ai-recipe-import
 
 - Branch: `ai-recipe-import`
-- Stage: 7 Production PR (Gate B: waiting for a human to verify and merge)
+- Stage: **complete (archived automatically on 2026-10-23 after the production release `ec7b7c1`)**
 - Review round: 5 (3 of 3, plus two authorized by the user)
 - QA cycle: 2 of 3
 - Started: 2026-10-23
@@ -250,3 +250,25 @@ Resumed on 2026-10-23. User: "Run one more independent review round on the round
 HALTED again on 2026-10-23 at stage 4, after round 4. The user had asked to resume at stage 5 only if round 4 had no blockers or majors; it had one major. It and the minors are fixed on the branch (see the round 4 line) but unreviewed. Nothing merged; QA not run. Next step for a human: decide whether to run a fifth round, review the round 4 fixes, or resume.
 
 Resumed again on 2026-10-23. User: "Run a fifth independent review round on the round 4 fixes. If it has no blockers or majors, resume at stage 5 (merge to develop, QA, production PR)."
+
+## Archive
+Archived automatically on 2026-10-23 after the production release `ec7b7c1` ([workflow run](https://github.com/rhit-LEHMANCB/meal-planner/actions/runs/40002202165)). That marks this lifecycle complete.
+
+## Outcome
+
+Added after the archive by the wrap-up (stage 8), 2026-10-23.
+
+- Production: release PR #11 merged as `ec7b7c1`. The production migration (`0002`) and the App Hosting rollout of `meal-planner` succeeded, and `/api/health` on the production site returns `{"db":"ok"}`.
+- Same release: PR #12 (sticky sidebar, wider recipe pages, readable ingredient rows on the import review) went out with this change. It fixed the narrow Name and Note columns QA observed.
+- Archive: PR #13 merged as `70360b3`.
+- Issues filed for the deferred findings and QA observations:
+  - #14: malformed HTML can make the tokenizer drop page text
+  - #15: the JSON-LD finder takes the first Recipe and misses URL-style `@type`
+  - #16: structured-data drafts are not clamped to the form limits
+  - #17: a non-recipe page gives an empty "successful" review and spends an AI import
+  - #18: no "Paste text instead" button after a blocked link
+  - #19: `safeFetch` accepts test-only options on its production signature
+  - #20: `BODY_SIZE_LIMIT=6M` applies to every route, and photos over 6 MB get a plain 413
+  - #21: gaps without JavaScript and after a failed import save
+- The QA evidence branch `qa-evidence/ai-recipe-import` was deleted at the owner's request. The screenshots embedded in PR #11 no longer load. The QA report text stays above.
+- Human verification checklist: no results were reported back to the lifecycle.

@@ -31,6 +31,18 @@ Mockups: https://claude.ai/artifact/LZ2eJMT726E4PtF5XzNMd5 (weekly plan, import 
 - Routes get the user from `requireUserId(locals)` and talk to recipes only through `getRecipeStore()` (`src/lib/server/recipes.ts`), whose methods all take the owner id. Someone else's recipe must look exactly like a missing one (404). Never query the recipe tables from a route directly.
 - Ingredients are structured rows (amount, unit, name, note) edited with `IngredientRows.svelte` on the add, edit and import review forms; steps are free text, one per line. `raw_text` is the display line: kept as written while a row is untouched, rebuilt from the fields once edited. `match_status` is `parsed`, `check` or `skipped`, always computed on the server (`ingredientStatus` in `src/lib/domain/ingredient-line.ts`). Rows saved before structured rows are `unparsed` with a null `name`; the edit form pre-fills them with the line parser and they convert when saved.
 
+## Plan and leftovers
+
+- `/plan?week=<Monday>` is a Mon–Sun week of breakfast, lunch, dinner and snack slots; a slot holds several `planned_meals`. Week math, slot order, eat-by (cook + 4 days) and batch state are pure functions in `src/lib/domain/plan.ts`, and form parsing is in `plan-form.ts`.
+- Entry kind comes from the columns, with no enum:
+  - **cook:** `recipe_id`, not leftover; its batch has `cook_meal_id` = the meal; `servings` = eaten; the batch's `servings_cooked` = cooked.
+  - **leftover:** `is_leftover`, `leftover_batch_id`, `recipe_id` = the batch's recipe; `servings` = drawn.
+  - **food:** `food_id`, `quantity`, `unit` (`g` or one of the food's `food_units`).
+- `leftover_batches.servings_remaining` is the batch's **free** servings (spare minus drawn). Change it only with a single SQL statement whose WHERE re-checks it (see `src/lib/server/plan.ts`), never read-then-write, so concurrent draws cannot over-plan a batch.
+- Routes use `getPlanStore()` and `getFoodStore()` (owner id on every method). `planned_meals` has no `user_id`: filter through `meal_plans.user_id`. Foods are visible when `user_id` is the user's or null (shared).
+- Recipe delete (`RecipeStore.remove`) is the one place outside the plan store that writes plan tables: it removes the recipe's planned meals and batches in the same batch.
+- Food search is `GET /plan/foods?q=`, deliberately not under `/api/*`, which is public.
+
 ## Recipe import
 
 - `/recipes/import` imports from a link, pasted text or a photo and ends on a review form; nothing is saved until "Save to recipe shelf" (the `save` action, which validates like any recipe form). The draft is not stored anywhere.

@@ -22,6 +22,13 @@
       "when": 1792729664559,
       "tag": "0002_magical_molten_man",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792784072740,
+      "tag": "0003_premium_dexter_bennett",
+      "breakpoints": true
     }
   ]
 }
