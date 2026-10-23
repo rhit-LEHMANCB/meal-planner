@@ -3,16 +3,15 @@ name: Deploy to Firebase Hosting on merge
   push:
     branches:
       - production
-      - develop
 jobs:
   build_and_deploy:
     concurrency:
       group: deploy-${{ github.ref_name }}
       cancel-in-progress: false
     runs-on: ubuntu-latest
-    # One GitHub environment per branch (develop, production) holds that branch's secrets and vars.
+    # The production GitHub environment holds the secrets and vars. There is no dev site yet.
     environment:
-      name: ${{ github.ref_name }}
+      name: production
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
