@@ -8,3 +8,11 @@ bun.lockb
 # Miscellaneous
 /static/
 /drizzle/
+
+# Generated or tool-managed by OpenSpec and Claude
+/.claude
+/openspec
+
+# Playwright output
+/test-results
+/playwright-report
