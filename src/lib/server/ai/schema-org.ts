@@ -1,7 +1,7 @@
 /** Pulls a schema.org Recipe out of a page's JSON-LD blocks. Free and accurate when present, so try it before the model. */
 export const findRecipeJsonLd = (html: string): Record<string, unknown> | null => {
 	const blocks = html.matchAll(
-		/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi
+		/<script[^>]*type=["']?application\/ld\+json["']?[^>]*>([\s\S]*?)<\/script>/gi
 	);
 	for (const [, raw] of blocks) {
 		try {
