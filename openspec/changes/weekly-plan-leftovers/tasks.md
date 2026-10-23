@@ -80,7 +80,7 @@
 
 ## 7. Leftovers page UI
 
-- [ ] 7.1 Add `/leftovers/+page.server.ts` (`load` via `listLeftovers`, `throwOut` action) and the page per the `Leftovers` mockup:
+- [x] 7.1 Add `/leftovers/+page.server.ts` (`load` via `listLeftovers`, `throwOut` action) and the page per the `Leftovers` mockup:
   - batch cards with draw chips and the Past eat-by badge
   - Throw out confirm dialog with Keep
   - "Finished or thrown out (last 2 weeks)" list
@@ -90,12 +90,12 @@
 
 ## 8. Docs and final checks
 
-- [ ] 8.1 Update `CLAUDE.md`:
+- [x] 8.1 Update `CLAUDE.md`:
   - plan and leftovers rules: entry kinds, `servings_remaining` = free servings, conditional-CTE writes, `/plan/foods` not under `/api`
   - the recipe store exception for deleting plan rows
 
   Verify the text matches the design.
-- [ ] 8.2 Run `npm run lint`, `npm run check`, `npm test` (with `TEST_DATABASE_URL` set to the dev branch), `npm run build` and `npm run check:server`, and verify all pass.
+- [x] 8.2 Run `npm run lint`, `npm run check`, `npm test` (with `TEST_DATABASE_URL` set to the dev branch), `npm run build` and `npm run check:server`, and verify all pass.
 
 ## Workflow follow-up
 

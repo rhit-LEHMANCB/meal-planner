@@ -1,7 +1,7 @@
 # Lifecycle: weekly-plan-leftovers
 
 - Branch: `weekly-plan-leftovers`
-- Stage: 3 Implement
+- Stage: 4 Review
 - Review round: 0 of 3
 - QA cycle: 0 of 3
 - Started: 2026-10-23
@@ -94,6 +94,12 @@ Run 2026-10-23. GitHub backend: **gh**.
 | Test database | OK: `TEST_DATABASE_URL` resolves to the Neon `dev` branch endpoint, not production; `neon connection-string dev` works for running migrations |
 | GitHub `develop` environment | OK: `DATABASE_URL_UNPOOLED` present; this change needs no new secrets |
 | `openspec validate --strict` | OK |
+
+## Implementation (stage 3, 2026-10-23)
+
+All tasks in `tasks.md` are checked. Locally, `npm run lint`, `check`, `test` (34 files, 439 tests, integration specs on the Neon `dev` branch), `build`, `check:server` and `check:migrations` all pass. The migration `0003` is applied to the Neon `dev` branch.
+
+Deviation: the UI was not driven in `npm run dev`. The local `.env` points at production and sign-in goes through the real Firebase Auth. UI behaviour is instead covered by browser component specs (`AddDialog.svelte.spec.ts`, `SlotCell.svelte.spec.ts`) and left to the QA stage on the dev site.
 
 ## Review rounds
 
