@@ -8,7 +8,7 @@ AI recipe import, a weekly meal plan with leftovers, grocery lists and calorie t
 nvm use            # Node 22
 npm install
 cp .env.example .env   # fill in values, see below
-npm run db:push    # create tables in Neon
+npm run db:migrate   # apply migrations to Neon
 npm run dev
 ```
 
