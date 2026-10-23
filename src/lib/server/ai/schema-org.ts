@@ -4,9 +4,10 @@ import { scanHtml } from './html-scan';
 export const findRecipeJsonLd = (html: string): Record<string, unknown> | null => {
 	for (const token of scanHtml(html)) {
 		if (token.type !== 'raw' || token.name !== 'script') continue;
-		if (!/type\s*=\s*["']?application\/ld\+json/i.test(token.openTag)) continue;
+		// A real `type` attribute, not `data-type=` or `mimetype=`.
+		if (!/\stype\s*=\s*["']?application\/ld\+json/i.test(token.openTag)) continue;
 		try {
-			const found = collectRecipes(JSON.parse(token.content));
+			const found = collectRecipes(JSON.parse(token.content), 0);
 			if (found) return found;
 		} catch {
 			// Ignore blocks that are not valid JSON.
@@ -15,10 +16,12 @@ export const findRecipeJsonLd = (html: string): Record<string, unknown> | null =
 	return null;
 };
 
-const collectRecipes = (node: unknown): Record<string, unknown> | null => {
+/** Finds a Recipe in a JSON-LD value, inside arrays, `@graph` or `mainEntity`, a few levels deep. */
+const collectRecipes = (node: unknown, depth: number): Record<string, unknown> | null => {
+	if (depth > 8) return null;
 	if (Array.isArray(node)) {
 		for (const item of node) {
-			const found = collectRecipes(item);
+			const found = collectRecipes(item, depth + 1);
 			if (found) return found;
 		}
 		return null;
@@ -27,7 +30,7 @@ const collectRecipes = (node: unknown): Record<string, unknown> | null => {
 		const obj = node as Record<string, unknown>;
 		const type = obj['@type'];
 		if (type === 'Recipe' || (Array.isArray(type) && type.includes('Recipe'))) return obj;
-		return collectRecipes(obj['@graph']);
+		return collectRecipes(obj['@graph'], depth + 1) ?? collectRecipes(obj.mainEntity, depth + 1);
 	}
 	return null;
 };

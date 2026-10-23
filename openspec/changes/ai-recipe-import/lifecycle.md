@@ -1,8 +1,8 @@
 # Lifecycle: ai-recipe-import
 
 - Branch: `ai-recipe-import`
-- Stage: 4 Review (resumed after halt)
-- Review round: 3 of 3, plus round 4 authorized by the user
+- Stage: HALTED at 4 Review (round 4 found a major)
+- Review round: 4 (3 of 3, plus one authorized by the user)
 - QA cycle: 0 of 3
 - Started: 2026-10-23
 
@@ -112,6 +112,7 @@ Run 2026-10-23. GitHub backend: `gh`.
 - Round 1 (2026-10-23): 0 blockers, 1 major, 6 minors, 2 nits. Fixed: the major (a stalled compressed body could get past the 10 s deadline, because `pipe` did not pass the abort on; now `pipeline`, with a test); amounts drifting when edited (`formatAmount` only shows a fraction that reads back as exactly the same amount, with round-trip tests); a redirect to another scheme or port was reported as a bad link (now "could not be read", with a test); unexpected errors after the model call became a 500 (now "unavailable", slot kept, only the message logged); `needsCheck` on a failed save; case-insensitive delimiter strip. Status rule for an amount with no unit: code and design say "parsed" (counts such as "2 eggs"); the spec wording said "check", so the wording in both spec deltas was clarified to match the approved design. `max_tokens` 8192 kept and the design updated (a 100-row recipe can need more than 4096 output tokens). Not fixed: midnight-UTC window between start and reserve (deferred).
 - Round 2 (2026-10-23): 0 blockers, 1 major, 6 minors, 2 nits. Fixed: the major (a link whose page the model found no recipe in now falls back to pasted text with the link kept, as the blocked-link requirement says; test added); the midnight-UTC window (reserving a slot now moves the row to today in the same statement; integration test added, so the round 1 deferred item is closed); API failures are now logged with error class and status only; `<form>` is no longer dropped from page text; source link capped at 2048 characters; meaningless `source` removed from a failed save. Design corrected: `BODY_SIZE_LIMIT` applies before the hook (public routes too) and a photo over 6 MB without browser shrinking gets a plain 413 (accepted). Not changed: a blocked link starts the 10 s cooldown, as the spec says ("of any source").
 - Round 3 (2026-10-23): 0 blockers, 1 major, 3 minors, 1 nit. Major: regex HTML stripping (`page-text.ts`, `schema-org.ts`) was quadratic on hostile pages (many unclosed `<nav>`, `<!--` or JSON-LD scripts), so one import of a crafted 2 MB page could block the single instance for minutes. Fixed after the round, on the branch: a one-pass tokenizer (`html-scan.ts`) now drives page text and the JSON-LD finder, tag stripping in JSON-LD values stops at the next `<` and long values are capped; tests time 2 MB hostile pages (each well under 1.5 s). Minors also fixed: an answer cut off at `max_tokens` is flagged and the review warns; a photo the API refuses (400/413) gets "That photo could not be read" instead of "unavailable"; the photo submit is disabled while the browser shrinks the photo. Nit not fixed: test-only options on `safeFetch` (deferred). These fixes have NOT been through a review round.
+- Round 4 (2026-10-23, authorized by the user): 0 blockers, 1 major, 6 minors, 4 nits. Major: the scanner lower-cased the page with `toLowerCase()` and used those offsets on the original; characters such as "İ" grow when lower-cased, so JSON-LD after them was cut wrong and the import fell through to the AI. Fixed after the round: only ASCII letters are lower-cased (length kept), with a regression test. Minors fixed: a ">" inside a quoted attribute no longer ends a tag; a lone "<" is text without swallowing the next tag; only a real `type` attribute marks JSON-LD; a Recipe stub with no ingredients and no steps falls through to the page text, and `mainEntity` is followed; all instruction strings share one character budget; the delimiter strip repeats until stable; only image-related 400s (and 413) count as an unreadable photo, others stay "unavailable". Nits: a `<title>` inside a dropped element is ignored; comment on first-main/article. Not changed: wall-clock thresholds in the hostile-page tests (kept generous). These fixes have NOT been reviewed. 372 tests pass.
 
 ## Deferred findings
 
@@ -140,3 +141,5 @@ HALTED on 2026-10-23 at stage 4 (review), after round 3 of 3.
 
 
 Resumed on 2026-10-23. User: "Run one more independent review round on the round 3 fixes. If it has no blockers or majors, resume the lifecycle at stage 5 (merge to develop, QA, production PR)."
+
+HALTED again on 2026-10-23 at stage 4, after round 4. The user had asked to resume at stage 5 only if round 4 had no blockers or majors; it had one major. It and the minors are fixed on the branch (see the round 4 line) but unreviewed. Nothing merged; QA not run. Next step for a human: decide whether to run a fifth round, review the round 4 fixes, or resume.

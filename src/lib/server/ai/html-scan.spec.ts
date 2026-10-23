@@ -76,3 +76,56 @@ describe('scanHtml', () => {
 		expect(text.split('\n')).toEqual(['Chili', '1 lb turkey']);
 	});
 });
+
+describe('round 4 regressions', () => {
+	const chiliLd = '{"@type":"Recipe","name":"Chili","recipeIngredient":["1 lb turkey"]}';
+
+	it('keeps offsets right when the page has characters that grow when lower-cased', () => {
+		const html = `<p>İstanbul İİİ</p><SCRIPT type="application/ld+json">${chiliLd}</SCRIPT><p>after</p>`;
+		expect(findRecipeJsonLd(html)?.name).toBe('Chili');
+		expect(pageText(`<title>Ç</title><p>İ ${'word '.repeat(50)}</p><p>after</p>`)).toContain(
+			'after'
+		);
+	});
+
+	it('reads a ">" inside a quoted attribute as part of the tag', () => {
+		const html = `<script data-x="a>b" type="application/ld+json">${chiliLd}</script>`;
+		expect(findRecipeJsonLd(html)?.name).toBe('Chili');
+	});
+
+	it('treats a lone "<" as text without swallowing the tag after it', () => {
+		const html = `a <2 cups <script type=application/ld+json>${chiliLd}</script>`;
+		expect(findRecipeJsonLd(html)?.name).toBe('Chili');
+		expect(pageText('<p>Use <3 cups of love and 2 < 3 eggs</p>')).toBe(
+			'Use <3 cups of love and 2 < 3 eggs'
+		);
+	});
+
+	it('needs a real type attribute', () => {
+		expect(
+			findRecipeJsonLd(`<script data-type="application/ld+json">${chiliLd}</script>`)
+		).toBeNull();
+	});
+
+	it('finds a Recipe under mainEntity', () => {
+		const html = `<script type="application/ld+json">{"@type":"WebPage","mainEntity":${chiliLd}}</script>`;
+		expect(findRecipeJsonLd(html)?.name).toBe('Chili');
+	});
+
+	it('treats a Recipe stub with no ingredients or steps as no structured data', () => {
+		expect(recipeFromJsonLd({ '@type': 'Recipe', name: 'Chili' }, null)).toBeNull();
+	});
+
+	it('ignores a <title> inside a dropped element', () => {
+		const text = pageText(
+			`<body><svg><title>icon</title></svg><p>${'Real text. '.repeat(30)}</p></body>`
+		);
+		expect(text.startsWith('icon')).toBe(false);
+	});
+
+	it('bounds the work for many long instruction strings', () => {
+		const step = '<li>'.repeat(5000);
+		const recipe = { name: 'x', recipeInstructions: Array.from({ length: 100 }, () => step) };
+		expect(time(() => recipeFromJsonLd(recipe, null))).toBeLessThan(500);
+	});
+});

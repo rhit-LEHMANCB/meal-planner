@@ -41,26 +41,44 @@ export const parseDurationMinutes = (value: unknown): number | null => {
 	return minutes > 0 ? minutes : null;
 };
 
-/** Steps from any of the shapes sites use: a string, strings, HowToStep objects or HowToSections. */
+/**
+ * Steps from any of the shapes sites use: a string, strings, HowToStep objects or HowToSections.
+ * All step strings share one MAX_INSTRUCTIONS budget, so many long strings cannot add up.
+ */
 const collectSteps = (value: unknown): string[] => {
-	if (typeof value === 'string') {
-		// One string can hold several steps as list items or lines.
-		const capped = value.slice(0, MAX_INSTRUCTIONS);
-		const items = [...capped.matchAll(/<li[^<>]*>([\s\S]*?)<\/li>/gi)].map((m) => m[1]);
-		const parts = items.length > 0 ? items : capped.split(/\r?\n|<br\s*\/?>|<\/p>/i);
-		return parts.map(htmlToPlainText).filter(Boolean);
-	}
-	if (Array.isArray(value)) return value.flatMap(collectSteps);
-	if (value && typeof value === 'object') {
-		const obj = value as Record<string, unknown>;
-		if (obj.itemListElement) return collectSteps(obj.itemListElement);
-		const stepText = text(obj.text) || text(obj.name);
-		return stepText ? [stepText] : [];
-	}
-	return [];
+	let budget = MAX_INSTRUCTIONS;
+	const take = (s: string) => {
+		const part = s.slice(0, Math.max(budget, 0));
+		budget -= part.length;
+		return part;
+	};
+
+	const walk = (node: unknown, depth: number): string[] => {
+		if (budget <= 0 || depth > 8) return [];
+		if (typeof node === 'string') {
+			// One string can hold several steps as list items or lines.
+			const capped = take(node);
+			const items = [...capped.matchAll(/<li[^<>]*>([\s\S]*?)<\/li>/gi)].map((m) => m[1]);
+			const parts = items.length > 0 ? items : capped.split(/\r?\n|<br\s*\/?>|<\/p>/i);
+			return parts.map(htmlToPlainText).filter(Boolean);
+		}
+		if (Array.isArray(node)) return node.flatMap((item) => walk(item, depth + 1));
+		if (node && typeof node === 'object') {
+			const obj = node as Record<string, unknown>;
+			if (obj.itemListElement) return walk(obj.itemListElement, depth + 1);
+			const raw = typeof obj.text === 'string' ? obj.text : obj.name;
+			const stepText = typeof raw === 'string' ? htmlToPlainText(take(raw)) : '';
+			return stepText ? [stepText] : [];
+		}
+		return [];
+	};
+	return walk(value, 0);
 };
 
-/** Turns a schema.org Recipe object into a draft. Null when it holds no title and no ingredients. */
+/**
+ * Turns a schema.org Recipe object into a draft. Null when it holds no ingredients and no steps
+ * (a stub on a listing page, say), so the import tries the page text instead.
+ */
 export const recipeFromJsonLd = (
 	recipe: Record<string, unknown>,
 	sourceUrl: string | null
@@ -70,7 +88,8 @@ export const recipeFromJsonLd = (
 	const lines = (Array.isArray(rawIngredients) ? rawIngredients : [rawIngredients])
 		.map(text)
 		.filter(Boolean);
-	if (!title && lines.length === 0) return null;
+	const steps = collectSteps(recipe.recipeInstructions);
+	if (lines.length === 0 && steps.length === 0) return null;
 
 	const prep = parseDurationMinutes(recipe.prepTime);
 	const cook = parseDurationMinutes(recipe.cookTime);
@@ -83,6 +102,6 @@ export const recipeFromJsonLd = (
 			(prep !== null || cook !== null ? (prep ?? 0) + (cook ?? 0) : null),
 		sourceUrl,
 		ingredients: lines.map(parseIngredientLine),
-		steps: collectSteps(recipe.recipeInstructions)
+		steps
 	};
 };

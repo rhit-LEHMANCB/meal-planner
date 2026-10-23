@@ -56,7 +56,12 @@ const content = (source: ExtractSource): Anthropic.ContentBlockParam[] => {
 		];
 	}
 	// The closing tag is removed from the material so it cannot end the data block early.
-	const material = source.text.replace(/<\/\s*recipe_source\s*>/gi, '');
+	// Repeated until nothing is left, so removed pieces cannot join into a new closing tag.
+	let material = source.text;
+	for (let before = ''; before !== material;) {
+		before = material;
+		material = material.replace(/<\/\s*recipe_source\s*>/gi, '');
+	}
 	return [
 		{
 			type: 'text',
@@ -110,11 +115,12 @@ export const extractRecipe = async (
 				messages: [{ role: 'user', content: content(source) }]
 			});
 		} catch (error) {
-			// The API refuses some photos (too large once encoded, or too many pixels); retrying cannot help.
+			// The API refuses some photos (too large once encoded, or too many pixels); retrying cannot
+			// help. Other 400s (billing, a malformed request) stay "unavailable".
 			if (
 				source.kind === 'image' &&
 				error instanceof Anthropic.APIError &&
-				(error.status === 400 || error.status === 413)
+				(error.status === 413 || (error.status === 400 && /image/i.test(error.message)))
 			) {
 				throw new ExtractError('photo-unreadable', false);
 			}

@@ -62,7 +62,8 @@ export const pageText = (html: string): string => {
 
 	for (const token of scanHtml(html)) {
 		if (token.type === 'raw') {
-			if (token.name === 'title' && !title) title = token.content;
+			// An <svg> or other dropped element can hold its own <title>; only the page's counts.
+			if (token.name === 'title' && !title && !skipping) title = token.content;
 			continue;
 		}
 		if (token.type === 'text') {
@@ -98,6 +99,7 @@ export const pageText = (html: string): string => {
 	}
 
 	let body = textOf(segments.join(''));
+	// Only the first <main> and first <article> are tried: enough for a recipe page, not for a blog index.
 	for (const region of [regions.main, regions.article]) {
 		if (!region) continue;
 		const part = textOf(segments.slice(region.start, region.end ?? segments.length).join(''));
