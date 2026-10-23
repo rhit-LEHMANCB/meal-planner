@@ -29,10 +29,12 @@
 {#if isAuthPage(page.url.pathname)}
 	{@render children()}
 {:else}
-	<div class="flex min-h-screen flex-wrap">
+	<!-- Phones: the nav stacks above the page. md and up: side by side, and the nav stays at screen
+	     height while the page scrolls, instead of stretching to the length of the page. -->
+	<div class="flex min-h-screen flex-wrap md:flex-nowrap">
 		<nav
 			aria-label="Main"
-			class="flex flex-[1_1_220px] flex-col gap-7 border-r border-line bg-white p-5 md:max-w-[240px]"
+			class="flex flex-[1_1_220px] flex-col gap-7 border-r border-line bg-white p-5 md:sticky md:top-0 md:h-screen md:max-w-[240px] md:shrink-0 md:self-start md:overflow-y-auto"
 		>
 			<div class="font-display text-2xl font-bold text-herb">Meal Planner</div>
 			<ul class="flex flex-col gap-1">

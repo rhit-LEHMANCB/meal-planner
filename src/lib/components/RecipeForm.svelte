@@ -1,18 +1,24 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import type { RecipeField, RecipeFormValues } from '$lib/domain/recipe-form';
+	import IngredientRows from '$lib/components/IngredientRows.svelte';
+	import type { RecipeFormErrors, RecipeFormValues } from '$lib/domain/recipe-form';
 
 	let {
 		values,
 		errors = {},
 		submitLabel,
-		cancelHref
+		cancelHref,
+		cancelLabel = 'Cancel',
+		action
 	}: {
 		values: RecipeFormValues;
-		errors?: Partial<Record<RecipeField, string>>;
+		errors?: RecipeFormErrors;
 		submitLabel: string;
 		cancelHref: string;
+		cancelLabel?: string;
+		/** A named form action such as "?/save"; the page's default action when left out. */
+		action?: string;
 	} = $props();
 
 	let busy = $state(false);
@@ -20,6 +26,7 @@
 
 <form
 	method="POST"
+	{action}
 	class="card flex flex-col gap-5 p-7"
 	use:enhance={() => {
 		busy = true;
@@ -99,21 +106,10 @@
 			>{/if}
 	</div>
 
-	<div class="flex flex-col gap-1.5">
-		<label class="label" for="ingredients">Ingredients</label>
-		<textarea
-			id="ingredients"
-			name="ingredients"
-			class="input py-3 leading-normal"
-			rows="9"
-			aria-describedby="ingredients-help"
-			aria-invalid={errors.ingredients ? 'true' : undefined}>{values.ingredients}</textarea
-		>
-		{#if errors.ingredients}<span class="field-error">{errors.ingredients}</span>{/if}
-		<span id="ingredients-help" class="hint">
-			One ingredient per line, in the order you want them shown.
-		</span>
-	</div>
+	<!-- Re-mounted when the server sends rows back (after an error), so it starts from them. -->
+	{#key values.ingredients}
+		<IngredientRows rows={values.ingredients} errors={errors.rows} error={errors.ingredients} />
+	{/key}
 
 	<div class="flex flex-col gap-1.5">
 		<label class="label" for="steps">Steps</label>
@@ -130,7 +126,7 @@
 	</div>
 
 	<div class="flex flex-wrap justify-end gap-3">
-		<a class="btn btn-secondary" href={resolve(cancelHref as '/recipes')}>Cancel</a>
+		<a class="btn btn-secondary" href={resolve(cancelHref as '/recipes')}>{cancelLabel}</a>
 		<button class="btn btn-primary" type="submit" disabled={busy}>
 			{busy ? 'Saving…' : submitLabel}
 		</button>

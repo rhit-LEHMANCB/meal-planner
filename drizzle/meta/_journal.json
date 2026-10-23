@@ -15,6 +15,13 @@
       "when": 1792722721790,
       "tag": "0001_violet_captain_midlands",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792729664559,
+      "tag": "0002_magical_molten_man",
+      "breakpoints": true
     }
   ]
 }

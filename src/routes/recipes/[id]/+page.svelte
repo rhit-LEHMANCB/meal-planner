@@ -12,7 +12,7 @@
 
 <svelte:head><title>{recipe.title}</title></svelte:head>
 
-<div class="flex max-w-[760px] flex-col gap-6">
+<div class="flex max-w-[1200px] flex-col gap-6">
 	<a class="text-sm font-medium text-herb" href={resolve('/recipes')}>‹ Back to recipes</a>
 
 	<header class="flex flex-wrap items-start gap-4">
@@ -59,8 +59,8 @@
 				<p class="text-sm text-muted">No ingredients yet.</p>
 			{:else}
 				<ul class="flex flex-col">
-					{#each recipe.ingredients as line, i (i)}
-						<li class="border-t border-[#e3e9df] py-2.5">{line}</li>
+					{#each recipe.ingredients as ingredient, i (i)}
+						<li class="border-t border-[#e3e9df] py-2.5">{ingredient.rawText}</li>
 					{/each}
 				</ul>
 			{/if}
