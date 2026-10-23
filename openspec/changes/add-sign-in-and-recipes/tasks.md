@@ -8,9 +8,9 @@
 
 ## 2. Session, hook and sign-out
 
-- [ ] 2.1 Rewrite `POST /api/session` to verify the ID token, require `email_verified` and an allowlisted email, set the `__session` cookie, and return `unverified`, `not-allowed` or `invalid` codes; add handler tests with a stubbed Admin SDK covering each scenario in `user-auth`
-- [ ] 2.2 Update `hooks.server.ts` to verify the cookie with revocation check, re-apply the allowlist, set `locals.userID` and `locals.email`, redirect signed-in users away from `/signin`, `/signup`, `/reset`, and send `Cache-Control: private, no-store`; add tests for protected, public, expired and removed-from-allowlist cases
-- [ ] 2.3 Add a sign-out action that clears the cookie and redirects to `/signin`; verify with a handler test
+- [x] 2.1 Rewrite `POST /api/session` to verify the ID token, require `email_verified` and an allowlisted email, set the `__session` cookie, and return `unverified`, `not-allowed` or `invalid` codes; add handler tests with a stubbed Admin SDK covering each scenario in `user-auth`
+- [x] 2.2 Update `hooks.server.ts` to verify the cookie with revocation check, re-apply the allowlist, set `locals.userID` and `locals.email`, redirect signed-in users away from `/signin`, `/signup`, `/reset`, and send `Cache-Control: private, no-store`; add tests for protected, public, expired and removed-from-allowlist cases
+- [x] 2.3 Add a sign-out action that clears the cookie and redirects to `/signin`; verify with a handler test
 
 ## 3. Auth screens
 
