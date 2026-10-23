@@ -24,6 +24,15 @@ Mockups: https://claude.ai/artifact/LZ2eJMT726E4PtF5XzNMd5 (weekly plan, import 
 
 `develop` deploys to the dev site, `production` to prod. Work on feature branches and merge to `develop` first.
 
+## Auth and recipes
+
+- Access is gated twice: `/api/session` refuses to start a session unless the email is allowlisted and verified, and `hooks.server.ts` re-checks both on every request (so removing an email takes effect immediately). Public routes are `/signin`, `/signup`, `/reset` and `/api/*` (`src/lib/domain/paths.ts`).
+- Accounts are created only by the sign-up server action after the allowlist check. Keep "Enable create (sign-up)" off in the Firebase console.
+- Routes get the user from `requireUserId(locals)` and talk to recipes only through `getRecipeStore()` (`src/lib/server/recipes.ts`), whose methods all take the owner id. Someone else's recipe must look exactly like a missing one (404). Never query the recipe tables from a route directly.
+- Recipe ingredients and steps are free text, one per line. Ingredient rows are saved with `match_status = 'unparsed'`; the AI import change will parse them.
+- Integration tests (`recipes.integration.spec.ts`) run when `TEST_DATABASE_URL` points at the Neon `dev` branch and are skipped otherwise. They clean up their own rows.
+- Drizzle prints a bare column name in single-table queries, so a correlated subquery must write the outer table's name out by hand.
+
 ## Database notes
 
 - The Neon HTTP driver (`drizzle-orm/neon-http`) has no interactive transactions. Use `db.batch([...])` for multi-step writes, or switch to the WebSocket `Pool` driver if a flow needs real transactions (for example drawing down leftover servings while inserting a planned meal).
@@ -37,9 +46,10 @@ Early development: one deployed site (production) and a separate dev database br
 - `DATABASE_URL` is the pooled string the app uses; `DATABASE_URL_UNPOOLED` is the direct one drizzle-kit uses for migrations.
 - Neon branches: `production` (default, the real database) and `dev` (a child of production with no expiry, for rehearsing migrations and running integration tests). Reset `dev` from production with `neon branches reset dev --parent --project-id plain-wind-36684347` when it drifts. `neon.ts` gives other new branches a 7 day TTL.
 - `npm run db:smoke` proves the connection with a write, read and delete.
+- `ALLOWED_EMAILS` is a comma-separated list of the emails allowed to sign up and sign in (case-insensitive). Only people on it get an account or a session; edit it with `firebase apphosting:secrets:set ALLOWED_EMAILS` and roll out again.
 - `/api/health` returns `{"db":"ok"}` when the database is reachable.
 - There is still no dev _site_, only the dev database branch. Point integration tests and QA at the `dev` Neon branch, never `production`, and do not run `dev-lifecycle` QA until a dev backend exists.
-- App Hosting backend id: `meal-planner`, live branch `production`. Secrets (`DATABASE_URL`, `ANTHROPIC_API_KEY`, `FB_CLIENT_EMAIL`, `FB_PRIVATE_KEY`) live in Cloud Secret Manager (`firebase apphosting:secrets:set <NAME>`), not in GitHub. There is no deploy GitHub Action: App Hosting builds and rolls out itself. GitHub Actions only runs `CI` and the OpenSpec archive.
+- App Hosting backend id: `meal-planner`, live branch `production`. Secrets (`DATABASE_URL`, `ANTHROPIC_API_KEY`, `FB_CLIENT_EMAIL`, `FB_PRIVATE_KEY`, `ALLOWED_EMAILS`) live in Cloud Secret Manager (`firebase apphosting:secrets:set <NAME>`), not in GitHub. There is no deploy GitHub Action: App Hosting builds and rolls out itself. GitHub Actions only runs `CI` and the OpenSpec archive.
 - `dev-lifecycle` still waits on a `firebase-hosting-merge.yml` run for the dev deploy. That workflow no longer exists, so rework that stage when a dev backend is added.
 
 ## Migrations
