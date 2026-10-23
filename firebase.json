@@ -1,7 +1,14 @@
 {
-	"apphosting": {
-		"backendId": "meal-planner",
-		"rootDir": "/",
-		"ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
-	}
+	"apphosting": [
+		{
+			"backendId": "meal-planner",
+			"rootDir": "/",
+			"ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+		},
+		{
+			"backendId": "meal-planner-dev",
+			"rootDir": "/",
+			"ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+		}
+	]
 }

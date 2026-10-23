@@ -48,7 +48,7 @@ jobs:
           # it, so approve it here. Without that the required checks never run and the PR cannot merge.
           run_id=""
           for _ in $(seq 1 24); do
-            run_id="$(gh run list --workflow firebase-hosting-pull-request.yml --branch "$branch" \
+            run_id="$(gh run list --workflow ci.yml --branch "$branch" \
               --event pull_request --json databaseId,conclusion \
               --jq '[.[] | select(.conclusion == "action_required")][0].databaseId // empty')"
             [ -n "$run_id" ] && break

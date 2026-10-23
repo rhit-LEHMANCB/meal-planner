@@ -39,7 +39,7 @@ Mockups: https://claude.ai/artifact/LZ2eJMT726E4PtF5XzNMd5 (weekly plan, import 
 
 ## Deployment
 
-Early development: one deployed site (production) and a separate dev database branch. No dev site yet.
+Two deployed sites in one Firebase project: production (`meal-planner`, branch `production`) and dev (`meal-planner-dev`, branch `develop`). Both are Firebase App Hosting backends built from this repo.
 
 - Firebase project id: `lehman-meals`
 - Neon: project `plain-wind-36684347` (org `org-green-unit-56216445`), branch `production`. `neon.ts` is the Neon config; `neon env pull` refreshes `.env`.
@@ -48,9 +48,9 @@ Early development: one deployed site (production) and a separate dev database br
 - `npm run db:smoke` proves the connection with a write, read and delete.
 - `ALLOWED_EMAILS` is a comma-separated list of the emails allowed to sign up and sign in (case-insensitive). Only people on it get an account or a session; edit it with `firebase apphosting:secrets:set ALLOWED_EMAILS` and roll out again.
 - `/api/health` returns `{"db":"ok"}` when the database is reachable.
-- There is still no dev _site_, only the dev database branch. Point integration tests and QA at the `dev` Neon branch, never `production`, and do not run `dev-lifecycle` QA until a dev backend exists.
+- Dev site: App Hosting backend `meal-planner-dev` (live branch `develop`, environment name `dev`, config in `apphosting.dev.yaml`) at https://meal-planner-dev--lehman-meals.us-east5.hosted.app. It uses the Neon `dev` branch (secret `DATABASE_URL_DEV`) and its own allowlist (secret `ALLOWED_EMAILS_DEV`: the owner plus the two QA accounts). The QA accounts are not on the production allowlist. Firebase Auth is one project for both sites. Never point QA or tests at production.
 - App Hosting backend id: `meal-planner`, live branch `production`. Secrets (`DATABASE_URL`, `ANTHROPIC_API_KEY`, `FB_CLIENT_EMAIL`, `FB_PRIVATE_KEY`, `ALLOWED_EMAILS`) live in Cloud Secret Manager (`firebase apphosting:secrets:set <NAME>`), not in GitHub. There is no deploy GitHub Action: App Hosting builds and rolls out itself. GitHub Actions only runs `CI` and the OpenSpec archive.
-- `dev-lifecycle` still waits on a `firebase-hosting-merge.yml` run for the dev deploy. That workflow no longer exists, so rework that stage when a dev backend is added.
+- QA: `npm run test:qa` runs `tests/qa` (Playwright, project `qa`) against the dev site, or any URL in `QA_BASE_URL`. Credentials come from the gitignored `.env.qa`; recreate or reset the two verified QA accounts with `node scripts/create-qa-users.mjs you@example.com` (needs Node 24 and the Admin credentials in `.env`). QA recipes are named `qa-*` and the suite cleans them up. Every page sets `data-hydrated` on `<html>`; tests wait for it before typing, because typing into a server-rendered form before hydration is overwritten.
 
 ## Migrations
 
