@@ -3,7 +3,7 @@ schema: spec-driven
 context: |
   SvelteKit 2 + Svelte 5 app (Vite 8, Tailwind 4, Firebase Auth for sign-in only, Neon Postgres through Drizzle, Anthropic API for recipe import) for meal planning: weekly plan, leftovers, grocery lists and calorie tracking.
   SvelteKit stays on 2.x for now (adapter-node 5); upgrade SvelteKit and adapter-node to 3 / 6 together. Deployed with Firebase App Hosting (apphosting.yaml), which builds from GitHub and runs `node build` on Cloud Run.
-  Requires Node 22 (see .nvmrc and package.json engines).
+  Requires Node 24 (see .nvmrc and package.json engines).
   Every user-data row has a user_id (the Firebase uid) and every query must filter by it; there are no database security rules.
   Calorie and macro numbers come from the foods table, never from the model.
   The Neon HTTP driver has no interactive transactions; use db.batch for multi-step writes.
