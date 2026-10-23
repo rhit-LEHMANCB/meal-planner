@@ -5,7 +5,7 @@ runConfig:
   cpu: 1
   memoryMiB: 512
   minInstances: 0 # scale to zero while this is a hobby project
-  maxInstances: 2 # cost cap
+  maxInstances: 1 # cost cap
   concurrency: 80
 
 scripts:
@@ -24,8 +24,15 @@ env:
   - variable: PUBLIC_FB_PROJECT_ID
     value: lehman-meals
     availability: [BUILD, RUNTIME]
-  # TODO: add PUBLIC_FB_API_KEY, PUBLIC_FB_AUTH_DOMAIN and PUBLIC_FB_APP_ID from the Firebase console
-  # (Project settings > Your apps). The build fails until they are set.
+  - variable: PUBLIC_FB_API_KEY
+    value: AIzaSyDEuFfKovLwbh-M73lrQk8pfoJrytJajEM
+    availability: [BUILD, RUNTIME]
+  - variable: PUBLIC_FB_AUTH_DOMAIN
+    value: lehman-meals.firebaseapp.com
+    availability: [BUILD, RUNTIME]
+  - variable: PUBLIC_FB_APP_ID
+    value: 1:876373284943:web:920f8e8a05b411ee2e723a
+    availability: [BUILD, RUNTIME]
 
   # Secrets live in Cloud Secret Manager. Create each with:
   #   firebase apphosting:secrets:set <NAME>
