@@ -1,0 +1,16 @@
+# Overrides for the `meal-planner-dev` backend. Its "Environment name" (backend settings, Deployment)
+# must be `dev` so App Hosting merges this file over apphosting.yaml.
+# The dev backend builds from the `develop` branch and uses the Neon `dev` branch, so QA and
+# experiments never touch production data.
+runConfig:
+  maxInstances: 1
+
+env:
+  # Neon dev branch (pooled connection), instead of production.
+  - variable: DATABASE_URL
+    secret: DATABASE_URL_DEV
+    availability: [RUNTIME]
+  # The owner plus the two QA accounts. The QA accounts are not on the production allowlist.
+  - variable: ALLOWED_EMAILS
+    secret: ALLOWED_EMAILS_DEV
+    availability: [RUNTIME]
