@@ -2,18 +2,18 @@
 
 ## 1. Schema and migration
 
-- [ ] 1.1 Edit `src/lib/server/db/schema.ts`:
+- [x] 1.1 Edit `src/lib/server/db/schema.ts`:
   - `planned_meals`: `recipe_id` nullable; add `food_id`, `quantity`, `unit` and `position`; index on `leftover_batch_id`.
   - `leftover_batches`: add `cook_meal_id` (unique, `ON DELETE SET NULL`, via `AnyPgColumn`) and `thrown_out_at`; index on `user_id`.
   - Unique index on `meal_plans (user_id, week_start)`; index on `foods.user_id`.
 
   Verify `npm run check` passes.
-- [ ] 1.2 Run `npm run db:generate` and commit the new `drizzle/` files. Verify `npm run check:migrations` passes, and the SQL has no `DROP TABLE/COLUMN`, `SET NOT NULL` or `NOT NULL` column without a default.
-- [ ] 1.3 Apply the migration to the Neon `dev` branch locally (`DATABASE_URL_UNPOOLED=$(neon connection-string dev …) npx drizzle-kit migrate`) so integration specs can run. Verify `drizzle-kit migrate` reports success.
+- [x] 1.2 Run `npm run db:generate` and commit the new `drizzle/` files. Verify `npm run check:migrations` passes, and the SQL has no `DROP TABLE/COLUMN`, `SET NOT NULL` or `NOT NULL` column without a default.
+- [x] 1.3 Apply the migration to the Neon `dev` branch locally (`DATABASE_URL_UNPOOLED=$(neon connection-string dev …) npx drizzle-kit migrate`) so integration specs can run. Verify `drizzle-kit migrate` reports success.
 
 ## 2. Plan domain logic (pure)
 
-- [ ] 2.1 Add `src/lib/domain/plan.ts` with:
+- [x] 2.1 Add `src/lib/domain/plan.ts` with:
   - week math: `mondayOf`, `weekDays`, `addDays`, `parseWeekParam`
   - `SLOTS` and `slotIndex`, `isAfterCook`, `eatByFor` (+4 days), `isPastEatBy`, `batchState`
 
@@ -23,7 +23,7 @@
   - same-day slot order
   - eat-by edges
   - finished vs fridge vs thrown out
-- [ ] 2.2 Add zod form parsers for cook (1 ≤ eaten ≤ cooked ≤ 99), leftover (servings ≥ 1), food entry (amount > 0, unit) and custom food (name 1–120; kcal 0–900; macros 0–100) with field errors. Verify the spec cases in `plan.spec.ts` pass with `npm test`.
+- [x] 2.2 Add zod form parsers for cook (1 ≤ eaten ≤ cooked ≤ 99), leftover (servings ≥ 1), food entry (amount > 0, unit) and custom food (name 1–120; kcal 0–900; macros 0–100) with field errors. Verify the cases in `plan-form.spec.ts` pass with `npm test`.
 
 ## 3. Food store and search endpoint
 
