@@ -64,7 +64,7 @@ Used for JSON-LD lines (which are plain strings), to pre-fill old plain-text row
 
 ### 5. Page text for the model
 
-When no JSON-LD Recipe is found, HTML is reduced to text in `src/lib/server/ai/page-text.ts`: drop `script`, `style`, `noscript`, `svg`, `template`, `iframe`, `object`, `nav`, `footer`, `aside`, `select`, `button` and comments (`header` and `form` are kept: recipe cards often sit inside them), prefer `<main>`/`<article>` when present, turn block tags into newlines, decode entities, collapse whitespace, cut to 30,000 chars. Regex-based, no DOM dependency; unit-tested on fixtures. A result under 200 chars counts as "no recipe found" without a model call.
+When no JSON-LD Recipe is found, HTML is reduced to text in `src/lib/server/ai/page-text.ts`: drop `script`, `style`, `noscript`, `svg`, `template`, `iframe`, `object`, `nav`, `footer`, `aside`, `select`, `button` and comments (`header` and `form` are kept: recipe cards often sit inside them), prefer `<main>`/`<article>` when present, turn block tags into newlines, decode entities, collapse whitespace, cut to 30,000 chars. It reads the page in one forward pass with a small tokenizer (`src/lib/server/ai/html-scan.ts`, also used to find JSON-LD), because regexes such as `<nav>[sS]*?</nav>` take quadratic time on a hostile page with many unclosed tags; an unterminated comment, tag or script ends the scan. No DOM dependency; unit-tested on fixtures. A result under 200 chars counts as "no recipe found" without a model call.
 
 ### 6. JSON-LD mapping `src/lib/domain/schema-org-recipe.ts`
 

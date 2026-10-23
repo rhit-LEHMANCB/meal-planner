@@ -2,7 +2,12 @@ import { htmlToPlainText } from './html-text';
 import { parseIngredientLine } from './ingredient-line';
 import type { ImportDraft } from './recipe-import';
 
-const text = (value: unknown): string => (typeof value === 'string' ? htmlToPlainText(value) : '');
+// Values are capped before any pattern runs on them: JSON-LD comes from untrusted pages.
+const MAX_FIELD = 2000;
+const MAX_INSTRUCTIONS = 20_000;
+
+const text = (value: unknown): string =>
+	typeof value === 'string' ? htmlToPlainText(value.slice(0, MAX_FIELD)) : '';
 
 /** The first whole number in a yield such as 6, "6", "6 servings", "4-6" or ["6", "6 bowls"]. */
 export const parseYield = (value: unknown): number | null => {
@@ -40,8 +45,9 @@ export const parseDurationMinutes = (value: unknown): number | null => {
 const collectSteps = (value: unknown): string[] => {
 	if (typeof value === 'string') {
 		// One string can hold several steps as list items or lines.
-		const items = [...value.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)].map((m) => m[1]);
-		const parts = items.length > 0 ? items : value.split(/\r?\n|<br\s*\/?>|<\/p>/i);
+		const capped = value.slice(0, MAX_INSTRUCTIONS);
+		const items = [...capped.matchAll(/<li[^<>]*>([\s\S]*?)<\/li>/gi)].map((m) => m[1]);
+		const parts = items.length > 0 ? items : capped.split(/\r?\n|<br\s*\/?>|<\/p>/i);
 		return parts.map(htmlToPlainText).filter(Boolean);
 	}
 	if (Array.isArray(value)) return value.flatMap(collectSteps);

@@ -1,8 +1,8 @@
 # Lifecycle: ai-recipe-import
 
 - Branch: `ai-recipe-import`
-- Stage: 4 Review
-- Review round: 2 of 3
+- Stage: HALTED at 4 Review (round 3 found a major)
+- Review round: 3 of 3
 - QA cycle: 0 of 3
 - Started: 2026-10-23
 
@@ -111,10 +111,12 @@ Run 2026-10-23. GitHub backend: `gh`.
 
 - Round 1 (2026-10-23): 0 blockers, 1 major, 6 minors, 2 nits. Fixed: the major (a stalled compressed body could get past the 10 s deadline, because `pipe` did not pass the abort on; now `pipeline`, with a test); amounts drifting when edited (`formatAmount` only shows a fraction that reads back as exactly the same amount, with round-trip tests); a redirect to another scheme or port was reported as a bad link (now "could not be read", with a test); unexpected errors after the model call became a 500 (now "unavailable", slot kept, only the message logged); `needsCheck` on a failed save; case-insensitive delimiter strip. Status rule for an amount with no unit: code and design say "parsed" (counts such as "2 eggs"); the spec wording said "check", so the wording in both spec deltas was clarified to match the approved design. `max_tokens` 8192 kept and the design updated (a 100-row recipe can need more than 4096 output tokens). Not fixed: midnight-UTC window between start and reserve (deferred).
 - Round 2 (2026-10-23): 0 blockers, 1 major, 6 minors, 2 nits. Fixed: the major (a link whose page the model found no recipe in now falls back to pasted text with the link kept, as the blocked-link requirement says; test added); the midnight-UTC window (reserving a slot now moves the row to today in the same statement; integration test added, so the round 1 deferred item is closed); API failures are now logged with error class and status only; `<form>` is no longer dropped from page text; source link capped at 2048 characters; meaningless `source` removed from a failed save. Design corrected: `BODY_SIZE_LIMIT` applies before the hook (public routes too) and a photo over 6 MB without browser shrinking gets a plain 413 (accepted). Not changed: a blocked link starts the 10 s cooldown, as the spec says ("of any source").
+- Round 3 (2026-10-23): 0 blockers, 1 major, 3 minors, 1 nit. Major: regex HTML stripping (`page-text.ts`, `schema-org.ts`) was quadratic on hostile pages (many unclosed `<nav>`, `<!--` or JSON-LD scripts), so one import of a crafted 2 MB page could block the single instance for minutes. Fixed after the round, on the branch: a one-pass tokenizer (`html-scan.ts`) now drives page text and the JSON-LD finder, tag stripping in JSON-LD values stops at the next `<` and long values are capped; tests time 2 MB hostile pages (each well under 1.5 s). Minors also fixed: an answer cut off at `max_tokens` is flagged and the review warns; a photo the API refuses (400/413) gets "That photo could not be read" instead of "unavailable"; the photo submit is disabled while the browser shrinks the photo. Nit not fixed: test-only options on `safeFetch` (deferred). These fixes have NOT been through a review round.
 
 ## Deferred findings
 
 - Known gap: without JavaScript, editing a row's fields does not clear its hidden display line, so the line can keep the old wording; reordering rows also needs JavaScript.
+- Round 3 nit: `safeFetch` and `checkUrl` accept test-only options (`isAllowedAddress`, `anyPort`, `resolve`) on their production signature; nothing passes them today, but a future caller could weaken the checks. Move them behind a test-only factory.
 - Known gap: a photo over 6 MB without browser shrinking gets the server's plain 413 page.
 - Known gap: a failed save on the import review no longer shows the "AI parsed" or "structured data" notice (the draft's origin is not posted back).
 
@@ -128,4 +130,11 @@ Run 2026-10-23. GitHub backend: `gh`.
 
 ## Halted
 
-(only if the run halted: stage, reason, evidence, next step for a human)
+HALTED on 2026-10-23 at stage 4 (review), after round 3 of 3.
+
+- Reason: the skill allows at most 3 review rounds and requires a halt when round 3 still has a blocker or major. Round 3 reported one major (quadratic HTML scanning on hostile pages, a denial of service on the single App Hosting instance).
+- What was done after the round: the major and the three minors were fixed on the branch (commit after 9982bc2, see the round 3 line above), with tests. All local checks pass: lint, check, 362 tests (unit, browser and integration against the Neon dev branch), build, check:server, check:migrations. These fixes have not been reviewed.
+- Not done: nothing is merged; there is no PR into develop yet except the draft opened by the halt; stage 5 (merge to develop), stage 6 (QA on the dev site) and stage 7 (production PR) did not run. The Neon dev branch already has migration 0002 (applied locally during stage 3 for the integration tests; it is additive and the dev site's current code ignores it).
+- Evidence: round findings in Review rounds above; draft PR linked below.
+- Next step for a human: review the round 3 fixes (, mainly  and ), or ask for one more independent review round. If satisfied, say so and the run can resume at stage 5 (mark the draft PR ready, wait for , merge to develop with a merge commit, then QA on the dev site and the production PR).
+

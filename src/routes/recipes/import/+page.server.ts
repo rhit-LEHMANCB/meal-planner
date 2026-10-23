@@ -16,6 +16,7 @@ export interface ReviewInfo {
 	needsCheck: number;
 	droppedIngredients: number;
 	droppedSteps: number;
+	truncated: boolean;
 }
 
 export const load = async ({ locals, url }) => {
@@ -41,6 +42,7 @@ const MESSAGES: Record<ImportFailure, string> = {
 	'photo-missing': 'Choose a photo of the recipe.',
 	'photo-type': 'That file is not a photo we can read. Use a JPEG, PNG or WebP image.',
 	'photo-too-large': 'That photo is larger than 5 MB. Try a smaller one.',
+	'photo-unreadable': 'That photo could not be read. Try a smaller or clearer photo of the recipe.',
 	'no-recipe': 'No recipe was found in that. Check it and try again, or add the recipe by hand.',
 	unavailable: 'Recipe import is unavailable right now. Try again in a minute.'
 };
@@ -56,6 +58,7 @@ const STATUS: Record<ImportFailure, number> = {
 	'photo-missing': 400,
 	'photo-type': 415,
 	'photo-too-large': 413,
+	'photo-unreadable': 422,
 	'no-recipe': 422,
 	unavailable: 503
 };
@@ -87,7 +90,8 @@ const respond = (
 		ingredientCount: values.ingredients.length,
 		needsCheck: values.ingredients.filter((row) => rowStatus(row) === 'check').length,
 		droppedIngredients: result.droppedIngredients,
-		droppedSteps: result.droppedSteps
+		droppedSteps: result.droppedSteps,
+		truncated: result.truncated
 	};
 	return { source, review: { values, info } };
 };
@@ -136,7 +140,8 @@ export const actions = {
 						ingredientCount: values.ingredients.length,
 						needsCheck: values.ingredients.filter((row) => rowStatus(row) === 'check').length,
 						droppedIngredients: 0,
-						droppedSteps: 0
+						droppedSteps: 0,
+						truncated: false
 					} satisfies ReviewInfo
 				},
 				errors: result.errors

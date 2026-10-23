@@ -70,7 +70,8 @@ describe('import actions', () => {
 			via: 'ai',
 			draft,
 			droppedIngredients: 2,
-			droppedSteps: 0
+			droppedSteps: 0,
+			truncated: false
 		});
 		const result = await actions.link(
 			event({ request: post({ link: ' https://example.com/chili ' }), locals: locals() })
@@ -216,7 +217,8 @@ describe('import page', () => {
 					ingredientCount: 2,
 					needsCheck: 0,
 					droppedIngredients: 2,
-					droppedSteps: 0
+					droppedSteps: 0,
+					truncated: false
 				}
 			}
 		});
@@ -249,11 +251,38 @@ describe('import page', () => {
 					ingredientCount: 0,
 					needsCheck: 0,
 					droppedIngredients: 0,
-					droppedSteps: 0
+					droppedSteps: 0,
+					truncated: false
 				}
 			}
 		});
 		expect(out).toContain('Structured data found.');
+		expect(out).not.toContain('too long to read completely');
+	});
+
+	it('warns when the AI answer was cut off', () => {
+		const out = html({
+			source: 'text',
+			review: {
+				values: {
+					title: 'Feast',
+					servings: '6',
+					totalMinutes: '',
+					sourceUrl: '',
+					ingredients: [],
+					steps: ''
+				},
+				info: {
+					via: 'ai',
+					ingredientCount: 0,
+					needsCheck: 0,
+					droppedIngredients: 0,
+					droppedSteps: 0,
+					truncated: true
+				}
+			}
+		});
+		expect(out).toContain('too long to read completely');
 	});
 
 	it('switches a blocked link to pasted text and keeps the link', () => {

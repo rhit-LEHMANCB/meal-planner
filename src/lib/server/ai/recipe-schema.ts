@@ -50,6 +50,8 @@ export interface SalvagedRecipe {
 	/** Ingredient and step rows that were unusable and left out. */
 	droppedIngredients: number;
 	droppedSteps: number;
+	/** The model ran out of room, so the end of the recipe may be missing. */
+	truncated: boolean;
 }
 
 /**
@@ -93,6 +95,7 @@ export const salvageRecipe = (input: unknown, sourceUrl: string | null): Salvage
 			steps
 		},
 		droppedIngredients,
-		droppedSteps
+		droppedSteps,
+		truncated: false
 	};
 };

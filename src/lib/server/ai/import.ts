@@ -28,6 +28,8 @@ export type ImportFailure =
 	| 'photo-missing'
 	| 'photo-type'
 	| 'photo-too-large'
+	/** The AI service refused this photo. */
+	| 'photo-unreadable'
 	| 'no-recipe'
 	| 'unavailable';
 
@@ -39,6 +41,7 @@ export type ImportResult =
 			via: 'structured' | 'ai';
 			droppedIngredients: number;
 			droppedSteps: number;
+			truncated: boolean;
 	  }
 	| { ok: false; reason: ImportFailure };
 
@@ -126,7 +129,8 @@ export const makeImporter = (deps: ImporterDeps) => {
 					via: 'structured',
 					draft: structured,
 					droppedIngredients: 0,
-					droppedSteps: 0
+					droppedSteps: 0,
+					truncated: false
 				};
 			}
 

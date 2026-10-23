@@ -38,8 +38,11 @@ export const decodeEntities = (text: string): string =>
 		return NAMED_ENTITIES[ref.toLowerCase()] ?? whole;
 	});
 
-/** Plain text from a fragment of HTML: tags removed, entities decoded, whitespace collapsed. */
+/**
+ * Plain text from a fragment of HTML: tags removed, entities decoded, whitespace collapsed.
+ * The tag pattern stops at the next "<", so many unclosed tags cannot make it slow.
+ */
 export const htmlToPlainText = (html: string): string =>
-	decodeEntities(html.replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]*>/g, ' '))
+	decodeEntities(html.replace(/<br\s*\/?>/gi, ' ').replace(/<[^<>]*>/g, ' '))
 		.replace(/\s+/g, ' ')
 		.trim();

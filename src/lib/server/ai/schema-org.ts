@@ -1,11 +1,12 @@
+import { scanHtml } from './html-scan';
+
 /** Pulls a schema.org Recipe out of a page's JSON-LD blocks. Free and accurate when present, so try it before the model. */
 export const findRecipeJsonLd = (html: string): Record<string, unknown> | null => {
-	const blocks = html.matchAll(
-		/<script[^>]*type=["']?application\/ld\+json["']?[^>]*>([\s\S]*?)<\/script>/gi
-	);
-	for (const [, raw] of blocks) {
+	for (const token of scanHtml(html)) {
+		if (token.type !== 'raw' || token.name !== 'script') continue;
+		if (!/type\s*=\s*["']?application\/ld\+json/i.test(token.openTag)) continue;
 		try {
-			const found = collectRecipes(JSON.parse(raw));
+			const found = collectRecipes(JSON.parse(token.content));
 			if (found) return found;
 		} catch {
 			// Ignore blocks that are not valid JSON.

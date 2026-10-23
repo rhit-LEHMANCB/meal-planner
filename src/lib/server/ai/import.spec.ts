@@ -33,7 +33,8 @@ const setup = () => {
 	const extract = vi.fn(async (_source: unknown, sourceUrl: string | null) => ({
 		draft: { ...draft, sourceUrl },
 		droppedIngredients: 0,
-		droppedSteps: 0
+		droppedSteps: 0,
+		truncated: false
 	}));
 	return { usage, fetchPage, extract, importer: makeImporter({ usage, fetchPage, extract }) };
 };

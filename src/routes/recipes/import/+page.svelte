@@ -8,6 +8,8 @@
 	let { data, form }: PageProps = $props();
 
 	let busy = $state(false);
+	/** True while a chosen photo is being shrunk; the photo cannot be sent until it is done. */
+	let preparing = $state(false);
 
 	const review = $derived(form && 'review' in form ? form.review : null);
 	const failure = $derived(form && 'reason' in form ? form : null);
@@ -44,11 +46,16 @@
 		const input = event.currentTarget as HTMLInputElement;
 		const file = input.files?.[0];
 		if (!file) return;
-		const smaller = await shrinkPhoto(file);
-		if (smaller !== file) {
-			const transfer = new DataTransfer();
-			transfer.items.add(smaller);
-			input.files = transfer.files;
+		preparing = true;
+		try {
+			const smaller = await shrinkPhoto(file);
+			if (smaller !== file) {
+				const transfer = new DataTransfer();
+				transfer.items.add(smaller);
+				input.files = transfer.files;
+			}
+		} finally {
+			preparing = false;
 		}
 	};
 
@@ -120,6 +127,12 @@
 							{#if review.info.needsCheck > 0}
 								{plural(review.info.needsCheck, 'needs', 'need')} a second look.
 							{/if}
+						</div>
+					{/if}
+					{#if review.info.truncated}
+						<div class="notice notice-warn">
+							The recipe was too long to read completely. Check the end of the ingredients and
+							steps.
 						</div>
 					{/if}
 					{#if droppedNotice}
@@ -245,8 +258,8 @@
 							</span>
 						</div>
 						<div>
-							<button class="btn btn-primary" type="submit" disabled={busy}>
-								{busy ? 'Importing…' : 'Import photo'}
+							<button class="btn btn-primary" type="submit" disabled={busy || preparing}>
+								{preparing ? 'Preparing photo…' : busy ? 'Importing…' : 'Import photo'}
 							</button>
 						</div>
 					</form>

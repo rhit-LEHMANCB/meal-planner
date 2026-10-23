@@ -28,7 +28,7 @@ export type ExtractSource =
  */
 export class ExtractError extends Error {
 	constructor(
-		readonly reason: 'no-recipe' | 'unavailable',
+		readonly reason: 'no-recipe' | 'unavailable' | 'photo-unreadable',
 		readonly reachedModel: boolean
 	) {
 		super(`Recipe extraction failed: ${reason}`);
@@ -110,6 +110,14 @@ export const extractRecipe = async (
 				messages: [{ role: 'user', content: content(source) }]
 			});
 		} catch (error) {
+			// The API refuses some photos (too large once encoded, or too many pixels); retrying cannot help.
+			if (
+				source.kind === 'image' &&
+				error instanceof Anthropic.APIError &&
+				(error.status === 400 || error.status === 413)
+			) {
+				throw new ExtractError('photo-unreadable', false);
+			}
 			const { retry, reached } = classify(error);
 			reachedModel ||= reached;
 			if (retry && attempt === 1) {
@@ -131,6 +139,6 @@ export const extractRecipe = async (
 
 		const salvaged = salvageRecipe(toolUse.input, sourceUrl);
 		if (isEmptyDraft(salvaged.draft)) throw new ExtractError('no-recipe', true);
-		return salvaged;
+		return { ...salvaged, truncated: response.stop_reason === 'max_tokens' };
 	}
 };

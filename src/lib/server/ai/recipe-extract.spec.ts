@@ -59,6 +59,12 @@ describe('extractRecipe', () => {
 			steps: ['Brown the turkey.']
 		});
 		expect(create).toHaveBeenCalledTimes(1);
+		expect(result.truncated).toBe(false);
+	});
+
+	it('flags an answer cut off at the token limit', async () => {
+		const { client } = fakeClient(toolAnswer(chili, 'max_tokens'));
+		expect((await run(client)).truncated).toBe(true);
 	});
 
 	it('sends text inside a data block and the photo as an image block', async () => {
@@ -125,6 +131,17 @@ describe('extractRecipe', () => {
 			reason: 'unavailable',
 			reached: true
 		});
+	});
+
+	it('reports a photo the API refuses as unreadable, without retrying', async () => {
+		const { client, create } = fakeClient(status(400));
+		const photo = extractRecipe(
+			{ kind: 'image', mediaType: 'image/jpeg', data: new Uint8Array([0xff, 0xd8, 0xff]) },
+			null,
+			{ client, wait: async () => {} }
+		);
+		expect(await failure(photo)).toEqual({ reason: 'photo-unreadable', reached: false });
+		expect(create).toHaveBeenCalledTimes(1);
 	});
 
 	it('does not retry a request the API rejected', async () => {
