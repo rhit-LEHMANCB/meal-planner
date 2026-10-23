@@ -14,7 +14,6 @@
 		"format": "prettier --write .",
 		"test:unit": "vitest",
 		"test": "vitest --run",
-		"test:e2e": "playwright install && playwright test",
 		"db:push": "drizzle-kit push",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
@@ -22,7 +21,8 @@
 		"check:server": "node scripts/check-server-imports.mjs",
 		"db:smoke": "tsx scripts/db-smoke.ts",
 		"start": "node build",
-		"check:migrations": "node scripts/check-migrations.mjs"
+		"check:migrations": "node scripts/check-migrations.mjs",
+		"test:qa": "playwright test --project=qa"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",

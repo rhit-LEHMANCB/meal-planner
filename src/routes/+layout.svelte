@@ -8,6 +8,11 @@
 
 	let { data, children }: LayoutProps = $props();
 
+	// Lets browser tests wait until the server-rendered page is interactive (typing earlier is overwritten).
+	$effect(() => {
+		document.documentElement.dataset.hydrated = 'true';
+	});
+
 	const nav = [
 		{ href: '/plan', label: 'Plan' },
 		{ href: '/recipes', label: 'Recipes' },
