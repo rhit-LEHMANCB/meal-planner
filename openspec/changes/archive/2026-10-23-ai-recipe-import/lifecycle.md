@@ -1,7 +1,7 @@
 # Lifecycle: ai-recipe-import
 
 - Branch: `ai-recipe-import`
-- Stage: 7 Production PR (Gate B: waiting for a human to verify and merge)
+- Stage: **complete (archived automatically on 2026-10-23 after the production release `ec7b7c1`)**
 - Review round: 5 (3 of 3, plus two authorized by the user)
 - QA cycle: 2 of 3
 - Started: 2026-10-23
@@ -250,3 +250,6 @@ Resumed on 2026-10-23. User: "Run one more independent review round on the round
 HALTED again on 2026-10-23 at stage 4, after round 4. The user had asked to resume at stage 5 only if round 4 had no blockers or majors; it had one major. It and the minors are fixed on the branch (see the round 4 line) but unreviewed. Nothing merged; QA not run. Next step for a human: decide whether to run a fifth round, review the round 4 fixes, or resume.
 
 Resumed again on 2026-10-23. User: "Run a fifth independent review round on the round 4 fixes. If it has no blockers or majors, resume at stage 5 (merge to develop, QA, production PR)."
+
+## Archive
+Archived automatically on 2026-10-23 after the production release `ec7b7c1` ([workflow run](https://github.com/rhit-LEHMANCB/meal-planner/actions/runs/40002202165)). That marks this lifecycle complete.
