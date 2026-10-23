@@ -78,7 +78,22 @@ Accepted preflight gaps: none
 
 ## Preflight
 
-(table of checks and results, from stage 2)
+Run 2026-10-23. GitHub backend: **gh**.
+
+| Check | Result |
+| --- | --- |
+| git identity, commit and push | OK: committed the proposal and pushed `weekly-plan-leftovers` to origin |
+| `gh auth status` | OK: rhit-LEHMANCB, scopes `repo`, `workflow` |
+| `develop` rules | OK: PR required, required check `verify`, no force-push or delete |
+| Playwright `qa` project, browsers | OK: `playwright.config.ts` project `qa`; Chromium installed |
+| QA credentials | OK: `.env.qa` copied from the main checkout, gitignored and untracked; all four `QA_*` user keys set (`QA_BASE_URL` unset, so the dev site default is used). **Gap:** `chmod 600` has no effect on Windows NTFS |
+| Dev site | OK: `/api/health` returns `{"db":"ok"}` |
+| Node | **Gap:** local Node is v22.23.2; `.nvmrc` and engines say 24, and there is no version manager on this machine. CI runs Node 24 |
+| `npm run lint` / `check` / `test` | OK: 28 files, 372 tests (integration specs included) |
+| `npm run build` / `check:server` | OK |
+| Test database | OK: `TEST_DATABASE_URL` resolves to the Neon `dev` branch endpoint, not production; `neon connection-string dev` works for running migrations |
+| GitHub `develop` environment | OK: `DATABASE_URL_UNPOOLED` present; this change needs no new secrets |
+| `openspec validate --strict` | OK |
 
 ## Review rounds
 
