@@ -1,8 +1,8 @@
 # Lifecycle: ai-recipe-import
 
 - Branch: `ai-recipe-import`
-- Stage: HALTED at 4 Review (round 4 found a major)
-- Review round: 4 (3 of 3, plus one authorized by the user)
+- Stage: 4 Review (resumed after second halt)
+- Review round: 5 (3 of 3, plus two authorized by the user)
 - QA cycle: 0 of 3
 - Started: 2026-10-23
 
@@ -143,3 +143,5 @@ HALTED on 2026-10-23 at stage 4 (review), after round 3 of 3.
 Resumed on 2026-10-23. User: "Run one more independent review round on the round 3 fixes. If it has no blockers or majors, resume the lifecycle at stage 5 (merge to develop, QA, production PR)."
 
 HALTED again on 2026-10-23 at stage 4, after round 4. The user had asked to resume at stage 5 only if round 4 had no blockers or majors; it had one major. It and the minors are fixed on the branch (see the round 4 line) but unreviewed. Nothing merged; QA not run. Next step for a human: decide whether to run a fifth round, review the round 4 fixes, or resume.
+
+Resumed again on 2026-10-23. User: "Run a fifth independent review round on the round 4 fixes. If it has no blockers or majors, resume at stage 5 (merge to develop, QA, production PR)."
