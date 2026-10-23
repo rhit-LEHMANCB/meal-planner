@@ -40,8 +40,7 @@
 				id="day-{date}"
 				class="mb-2 font-display text-lg font-bold {date === today ? 'text-herb-dark' : ''}"
 			>
-				{dayName(date)}
-				{monthDay(date)}{date === today ? ' · today' : ''}
+				{`${dayName(date)} ${monthDay(date)}${date === today ? ' · today' : ''}`}
 			</h2>
 			<div class="flex flex-col gap-2">
 				{#each SLOTS as slot (slot)}
