@@ -1,7 +1,7 @@
 # Lifecycle: ai-recipe-import
 
 - Branch: `ai-recipe-import`
-- Stage: 5 Ship to develop
+- Stage: 5 Ship to develop (PR #9 ready, auto-merge with a merge commit on, waiting for verify)
 - Review round: 5 (3 of 3, plus two authorized by the user)
 - QA cycle: 0 of 3
 - Started: 2026-10-23
