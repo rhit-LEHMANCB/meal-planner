@@ -1,8 +1,8 @@
 # Lifecycle: weekly-plan-leftovers
 
 - Branch: `weekly-plan-leftovers`
-- Stage: 4 Review
-- Review round: 1 of 3
+- Stage: 5 Ship to develop
+- Review round: 2 of 3
 - QA cycle: 0 of 3
 - Started: 2026-10-23
 
@@ -114,12 +114,21 @@ Deviation: the UI was not driven in `npm run dev`. The local `.env` points at pr
     - A stable `id` tiebreak in slot order.
     - Food search matches every word (the nit).
   - Minors deferred: confirm-then-delete race on removing a cook; the 60-day query window in `listBatches`.
+- Round 2 (fresh Sonnet Explore reviewer): 0 blockers, 0 majors, 3 minors, 1 nit. The loop exits.
+  - All are deferred:
+    - the remove-cook race again
+    - no route-level tests for the action status mapping and the `confirm` round trip (left to QA on the dev site)
+    - integration specs skipped in CI by repo convention (they ran locally on the Neon `dev` branch: 34 files, 443 tests)
+    - UTC vs local "today" near midnight (a known risk in the design)
 
 ## Deferred findings
 
 - Removing a cook: a leftover drawn between the confirmation check and the delete is removed without being listed (narrow race, `src/lib/server/plan.ts` `removeEntry`).
 - `listBatches` only looks at batches cooked in the last 60 days unless they still have free servings, so a 60+ day old batch with no free servings but a leftover planned today or later is not shown in the fridge.
 - Position within a slot can tie under concurrent adds (order then falls back to id).
+- No route-level tests for `/plan` action status codes and the `confirm=1` round trip.
+- Plan and leftover integration specs run only where `TEST_DATABASE_URL` is set (not in CI).
+- Batch state uses the server's UTC date; the plan header uses the browser's local date.
 
 ## QA report
 
