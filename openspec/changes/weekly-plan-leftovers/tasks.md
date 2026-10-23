@@ -49,12 +49,12 @@
 
 ## 5. Recipe delete
 
-- [ ] 5.1 In `src/lib/server/recipes.ts`:
+- [x] 5.1 In `src/lib/server/recipes.ts`:
   - `get` returns `plannedCount`.
   - `remove` deletes the recipe's planned meals, then its batches, then the recipe, in one `db.batch`.
 
   Verify `recipes.integration.spec.ts` gains a case where a recipe with a cook and a leftover deletes cleanly, and another user's plan is untouched.
-- [ ] 5.2 Update the recipe detail delete dialog to say "It is on N planned meals, which will be removed too" when `plannedCount > 0`. Verify `npm run check` passes and the text appears for a planned recipe in `npm run dev`.
+- [x] 5.2 Update the recipe detail delete dialog to say "It is on N planned meals, which will be removed too" when `plannedCount > 0`. Verify `npm run check` passes and the text appears for a planned recipe in `npm run dev`.
 
 ## 6. Plan page UI
 

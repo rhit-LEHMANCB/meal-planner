@@ -90,6 +90,13 @@
 		<p class="leading-relaxed text-[#3f5247]">
 			"{recipe.title}" and its ingredients will be removed. This cannot be undone.
 		</p>
+		{#if recipe.plannedCount > 0}
+			<p class="leading-relaxed text-[#3f5247]">
+				It is on {recipe.plannedCount}
+				{recipe.plannedCount === 1 ? 'planned meal' : 'planned meals'}, which will be removed from
+				your plan too, along with its leftovers.
+			</p>
+		{/if}
 		<div class="flex flex-wrap justify-end gap-3">
 			<button type="button" class="btn btn-secondary" onclick={() => dialog.close()}>Cancel</button>
 			<button type="submit" class="btn btn-danger">Delete recipe</button>
