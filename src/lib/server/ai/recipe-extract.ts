@@ -116,6 +116,12 @@ export const extractRecipe = async (
 				await wait(1000);
 				continue;
 			}
+			// The error class and status explain a bad key or an outage; the request is never logged.
+			console.error(
+				'Recipe extraction failed:',
+				(error as Error)?.constructor?.name,
+				error instanceof Anthropic.APIError ? error.status : ''
+			);
 			throw new ExtractError('unavailable', reachedModel);
 		}
 

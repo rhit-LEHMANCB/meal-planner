@@ -132,7 +132,9 @@ export const makeImporter = (deps: ImporterDeps) => {
 
 			const text = pageText(page.html);
 			if (text.length < PAGE_TEXT_MIN) return fail('link-unreadable');
-			return withAi(userId, { kind: 'text', text }, sourceUrl);
+			const result = await withAi(userId, { kind: 'text', text }, sourceUrl);
+			// No recipe found on a page is a blocked link too: offer pasted text with the link kept.
+			return !result.ok && result.reason === 'no-recipe' ? fail('link-unreadable') : result;
 		},
 
 		async fromText(userId: string, text: string, sourceUrl: string | null): Promise<ImportResult> {

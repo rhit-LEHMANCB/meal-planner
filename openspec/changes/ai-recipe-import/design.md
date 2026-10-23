@@ -64,7 +64,7 @@ Used for JSON-LD lines (which are plain strings), to pre-fill old plain-text row
 
 ### 5. Page text for the model
 
-When no JSON-LD Recipe is found, HTML is reduced to text in `src/lib/server/ai/page-text.ts`: drop `script`, `style`, `noscript`, `svg`, `nav`, `header`, `footer`, `aside` and comments, prefer `<main>`/`<article>` when present, turn block tags into newlines, decode entities, collapse whitespace, cut to 30,000 chars. Regex-based, no DOM dependency; unit-tested on fixtures. A result under 200 chars counts as "no recipe found" without a model call.
+When no JSON-LD Recipe is found, HTML is reduced to text in `src/lib/server/ai/page-text.ts`: drop `script`, `style`, `noscript`, `svg`, `template`, `iframe`, `object`, `nav`, `footer`, `aside`, `select`, `button` and comments (`header` and `form` are kept: recipe cards often sit inside them), prefer `<main>`/`<article>` when present, turn block tags into newlines, decode entities, collapse whitespace, cut to 30,000 chars. Regex-based, no DOM dependency; unit-tested on fixtures. A result under 200 chars counts as "no recipe found" without a model call.
 
 ### 6. JSON-LD mapping `src/lib/domain/schema-org-recipe.ts`
 
@@ -122,7 +122,8 @@ Alternative: in-memory map. Rejected: lost on every scale-to-zero restart, wrong
 - [Without JS, editing a row's fields does not clear its hidden display line, so the line can keep the old wording] → only affects scripting-off browsers; the structured fields are still correct. Recorded for QA.
 - [The add and edit forms change shape, breaking existing route specs and the baseline QA suite] → both are updated in this change (tasks 4.2, 4.3) and must pass before merge.
 - [During the rollout window old code runs on the new schema] → `name` is nullable and old code never reads it; rows old code writes stay `unparsed` and are pre-filled on the next edit.
-- [`BODY_SIZE_LIMIT` raises the request size cap for every route] → 6 MB is still small, and only signed-in users reach non-public routes; the hook runs before body parsing.
+- [`BODY_SIZE_LIMIT` raises the request size cap for every route, including public ones such as `/signup` and `/api/*`, because adapter-node applies it before the hook runs] → 6 MB is still small for one instance, App Hosting fronts the service, and the public endpoints read only a few form fields.
+- [A photo over 6 MB from a browser that cannot shrink it (scripting off, or an image it cannot decode) gets adapter-node's plain 413 page instead of the "larger than 5 MB" message] → accepted: with scripting on, large phone photos are shrunk first; between 5 and 6 MB the friendly message shows.
 - [Regex HTML stripping misses content on unusual pages] → the model is tolerant of noise; "no recipe found" falls back to paste.
 - [Prompt injection through page text] → model output only reaches the database through the validated save after the user reviews it; there are no tools with side effects.
 - [Dev QA spends the production Anthropic key's credits] → the same 20/day cap applies to the QA accounts; QA uses a few short fixed recipes.

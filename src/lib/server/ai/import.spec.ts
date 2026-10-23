@@ -109,6 +109,14 @@ describe('links', () => {
 		}
 	);
 
+	it('offers to paste instead when the model finds no recipe on the page', async () => {
+		t.extract.mockRejectedValueOnce(new ExtractError('no-recipe', true));
+		expect(await t.importer.fromLink(USER, 'https://example.com/')).toEqual({
+			ok: false,
+			reason: 'link-unreadable'
+		});
+	});
+
 	it('does not call the model for a page with almost no text', async () => {
 		t.fetchPage.mockResolvedValue({ url: 'https://example.com/', html: '<p>Loading…</p>' });
 		expect(await t.importer.fromLink(USER, 'https://example.com/')).toEqual({

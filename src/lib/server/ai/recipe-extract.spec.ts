@@ -1,6 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { describe, expect, it, vi } from 'vitest';
 
+// Failed calls log their error class; keep the test output quiet.
+vi.spyOn(console, 'error').mockImplementation(() => {});
+
 vi.mock('$env/dynamic/private', () => ({ env: {} }));
 
 import { ExtractError, extractRecipe } from './recipe-extract';

@@ -7,7 +7,7 @@ export const PAGE_TEXT_MAX = 30_000;
 export const PAGE_TEXT_MIN = 200;
 
 const DROP_BLOCKS =
-	/<(script|style|noscript|svg|template|iframe|object|nav|footer|aside|form|select|button)\b[^>]*>[\s\S]*?<\/\1\s*>/gi;
+	/<(script|style|noscript|svg|template|iframe|object|nav|footer|aside|select|button)\b[^>]*>[\s\S]*?<\/\1\s*>/gi;
 const BLOCK_TAGS =
 	/<\/?(br|p|div|li|ul|ol|h[1-6]|tr|td|th|table|section|article|header|main|dd|dt)\b[^>]*>/gi;
 

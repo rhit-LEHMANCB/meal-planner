@@ -1,4 +1,4 @@
-import { and, eq, lt, sql } from 'drizzle-orm';
+import { and, eq, lt, ne, or, sql } from 'drizzle-orm';
 import { getDb, type Db } from './db';
 import { importUsage } from './db/schema';
 
@@ -42,14 +42,18 @@ export const makeImportUsage = (db: Db) => ({
 
 	/** Takes one of today's AI imports. False when the daily limit is reached. Call after startImport. */
 	async reserveAi(userId: string): Promise<boolean> {
+		// The day is moved forward here too, so an import started just before midnight UTC
+		// takes its slot from the new day instead of being refused.
 		const rows = await db
 			.update(importUsage)
-			.set({ aiCount: sql`${importUsage.aiCount} + 1` })
+			.set({
+				aiCount: sql`case when ${importUsage.day} = ${today} then ${importUsage.aiCount} + 1 else 1 end`,
+				day: sql`${today}`
+			})
 			.where(
 				and(
 					eq(importUsage.userId, userId),
-					eq(importUsage.day, today),
-					lt(importUsage.aiCount, DAILY_AI_IMPORTS)
+					or(ne(importUsage.day, today), lt(importUsage.aiCount, DAILY_AI_IMPORTS))
 				)
 			)
 			.returning({ aiCount: importUsage.aiCount });

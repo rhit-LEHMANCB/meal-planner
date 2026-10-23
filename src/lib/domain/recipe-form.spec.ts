@@ -240,6 +240,14 @@ describe('parseRecipeForm', () => {
 		}
 	);
 
+	it('rejects a source link over 2048 characters', () => {
+		const sourceUrl = `https://example.com/${'a'.repeat(2048)}`;
+		expect(parseRecipeForm(form({ ...valid, sourceUrl }))).toMatchObject({
+			ok: false,
+			errors: { sourceUrl: expect.stringContaining('2048') }
+		});
+	});
+
 	it('accepts http and https links', () => {
 		for (const sourceUrl of ['http://example.com', 'https://example.com/a?b=c']) {
 			expect(parseRecipeForm(form({ ...valid, sourceUrl })).ok).toBe(true);

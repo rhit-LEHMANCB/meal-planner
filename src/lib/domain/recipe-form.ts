@@ -11,6 +11,7 @@ import {
 
 export const LIMITS = {
 	titleMax: 200,
+	sourceUrlMax: 2048,
 	servingsMax: 99,
 	totalMinutesMax: 1440,
 	ingredientsMax: 100,
@@ -74,6 +75,10 @@ const schema = z.object({
 		.refine(
 			(v) => v === '' || isHttpUrl(v),
 			'That link does not look right. Start it with http:// or https://.'
+		)
+		.refine(
+			(v) => v.length <= LIMITS.sourceUrlMax,
+			`The link must be ${LIMITS.sourceUrlMax} characters or fewer.`
 		),
 	steps: lines('Steps', LIMITS.stepsMax, LIMITS.stepMax)
 });

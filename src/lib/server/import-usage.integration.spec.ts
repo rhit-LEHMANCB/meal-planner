@@ -63,6 +63,19 @@ describe.skipIf(!url)('import usage (Neon dev branch)', () => {
 		expect(await usage.remainingToday(rolloverUser)).toBe(DAILY_AI_IMPORTS);
 	});
 
+	it('takes a slot from the new day when the import started before midnight', async () => {
+		const user = `${run}-midnight`;
+		users.push(user);
+		await usage.startImport(user);
+		// As if startImport ran yesterday at the limit and midnight passed before the reserve.
+		await db
+			.update(importUsage)
+			.set({ day: sql`((now() at time zone 'utc')::date - 1)`, aiCount: DAILY_AI_IMPORTS })
+			.where(eq(importUsage.userId, user));
+		expect(await usage.reserveAi(user)).toBe(true);
+		expect(await usage.remainingToday(user)).toBe(DAILY_AI_IMPORTS - 1);
+	});
+
 	it('keeps each user to their own count', async () => {
 		expect(await usage.remainingToday(otherUser)).toBe(DAILY_AI_IMPORTS);
 		expect(await usage.startImport(otherUser)).toBe(true);

@@ -127,7 +127,6 @@ export const actions = {
 		if (!result.ok) {
 			const values: RecipeFormValues = result.values;
 			return fail(400, {
-				source: 'link' as ImportSource,
 				review: {
 					values,
 					// The draft's origin is not posted back, so its "structured data" or "AI parsed"
