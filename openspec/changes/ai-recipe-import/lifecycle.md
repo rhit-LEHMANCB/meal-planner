@@ -1,7 +1,7 @@
 # Lifecycle: ai-recipe-import
 
 - Branch: `ai-recipe-import`
-- Stage: 3 Implement
+- Stage: 4 Review
 - Review round: 0 of 3
 - QA cycle: 0 of 3
 - Started: 2026-10-23

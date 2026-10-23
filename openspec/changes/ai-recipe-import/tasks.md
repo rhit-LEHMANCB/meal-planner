@@ -27,9 +27,9 @@
 - [x] 4.3 Update `tests/qa/smoke.spec.ts` for ingredient rows (create, reopen, edit) keeping its existing checks; verify `npx playwright test --project=qa --list` lists it and it type-checks (it runs against the dev site in QA)
 - [x] 4.4 Add `src/routes/recipes/import/+page.server.ts` with `load` (AI imports left) and `link`, `text`, `photo`, `save` actions using `requireUserId` and `getRecipeStore()`; verify route specs for redirect when signed out, error mapping, save success redirect, and save validation errors keeping edits
 - [x] 4.5 Build `src/routes/recipes/import/+page.svelte`: source tabs (Link, Paste text, Photo), counter, step indicator, review using `RecipeForm`/`IngredientRows`, notices (structured data found, N lines could not be read, blocked → Paste text instead keeping the link), Discard and Save to recipe shelf, styled with the existing tokens; verify `npm run check` and a page spec rendering the review from a draft
-- [ ] 4.6 Add client-side photo downscaling (≤1600 px JPEG via canvas, `DataTransfer`) with the server limits unchanged; verify by unit test of the size decision function and a manual check in the browser preview
+- [x] 4.6 Add client-side photo downscaling (≤1600 px JPEG via canvas, `DataTransfer`) with the server limits unchanged; verify by unit test of the size decision function and a manual check in the browser preview
 - [x] 4.7 Add "Import recipe" to the recipe list header and empty state; verify `src/routes/recipes/pages.spec.ts` covers the link
-- [ ] 4.8 Set `BODY_SIZE_LIMIT=6M` in `apphosting.yaml` (runtime, plain value) and document the import limits, `import_usage`, the `name` column and the row editor in `CLAUDE.md` (replacing the "free text, one per line" note); verify `npm run build` and a local `node build` accepts a 5 MB upload
+- [x] 4.8 Set `BODY_SIZE_LIMIT=6M` in `apphosting.yaml` (runtime, plain value) and document the import limits, `import_usage`, the `name` column and the row editor in `CLAUDE.md` (replacing the "free text, one per line" note); verify `npm run build` and a local `node build` accepts a 5 MB upload
 
 ## 5. Integration checks
 
