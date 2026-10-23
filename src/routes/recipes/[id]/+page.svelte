@@ -59,8 +59,8 @@
 				<p class="text-sm text-muted">No ingredients yet.</p>
 			{:else}
 				<ul class="flex flex-col">
-					{#each recipe.ingredients as line, i (i)}
-						<li class="border-t border-[#e3e9df] py-2.5">{line}</li>
+					{#each recipe.ingredients as ingredient, i (i)}
+						<li class="border-t border-[#e3e9df] py-2.5">{ingredient.rawText}</li>
 					{/each}
 				</ul>
 			{/if}

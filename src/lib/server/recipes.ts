@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, ilike, sql } from 'drizzle-orm';
-import type { RecipeInput } from '$lib/domain/recipe-form';
+import type { IngredientInput, RecipeInput, StoredIngredient } from '$lib/domain/recipe-form';
 import { getDb, type Db } from './db';
 import { recipeIngredients, recipes } from './db/schema';
 
@@ -20,9 +20,11 @@ export interface Recipe {
 	totalMinutes: number | null;
 	sourceUrl: string | null;
 	instructions: string[];
-	ingredients: string[];
+	ingredients: StoredIngredient[];
 	createdAt: Date;
 }
+
+const STATUSES = new Set(['parsed', 'check', 'skipped', 'unparsed']);
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -37,12 +39,16 @@ const escapeLike = (term: string) => term.replace(/[\\%_]/g, '\\$&');
 export const makeRecipeStore = (db: Db) => {
 	const owned = (userId: string, id: string) => and(eq(recipes.id, id), eq(recipes.userId, userId));
 
-	const ingredientRows = (recipeId: string, lines: string[]) =>
-		lines.map((rawText, position) => ({
+	const ingredientRows = (recipeId: string, ingredients: IngredientInput[]) =>
+		ingredients.map((ingredient, position) => ({
 			recipeId,
-			rawText,
+			rawText: ingredient.rawText,
 			position,
-			matchStatus: 'unparsed'
+			quantity: ingredient.quantity === null ? null : String(ingredient.quantity),
+			unit: ingredient.unit,
+			name: ingredient.name,
+			note: ingredient.note,
+			matchStatus: ingredient.status
 		}));
 
 	return {
@@ -77,11 +83,29 @@ export const makeRecipeStore = (db: Db) => {
 			const [recipe] = await db.select().from(recipes).where(owned(userId, id)).limit(1);
 			if (!recipe) return null;
 
-			const ingredients = await db
-				.select({ rawText: recipeIngredients.rawText })
+			const rows = await db
+				.select({
+					rawText: recipeIngredients.rawText,
+					quantity: recipeIngredients.quantity,
+					unit: recipeIngredients.unit,
+					name: recipeIngredients.name,
+					note: recipeIngredients.note,
+					matchStatus: recipeIngredients.matchStatus
+				})
 				.from(recipeIngredients)
 				.where(eq(recipeIngredients.recipeId, recipe.id))
 				.orderBy(asc(recipeIngredients.position));
+			const ingredients: StoredIngredient[] = rows.map((row) => ({
+				rawText: row.rawText,
+				quantity: row.quantity === null ? null : Number(row.quantity),
+				unit: row.unit,
+				name: row.name,
+				note: row.note,
+				// Anything unexpected is treated as plain text, which the edit form re-parses.
+				status: STATUSES.has(row.matchStatus)
+					? (row.matchStatus as StoredIngredient['status'])
+					: 'unparsed'
+			}));
 
 			return {
 				id: recipe.id,
@@ -90,7 +114,7 @@ export const makeRecipeStore = (db: Db) => {
 				totalMinutes: recipe.totalMinutes,
 				sourceUrl: recipe.sourceUrl,
 				instructions: recipe.instructions,
-				ingredients: ingredients.map((i) => i.rawText),
+				ingredients,
 				createdAt: recipe.createdAt
 			};
 		},

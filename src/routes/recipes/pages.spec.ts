@@ -63,7 +63,17 @@ describe('recipe detail', () => {
 		servings: 1,
 		totalMinutes: 90,
 		sourceUrl: 'https://www.example.com/chili',
-		ingredients: ['1 lb turkey', '1 onion'],
+		ingredients: [
+			{
+				rawText: '1 lb turkey',
+				quantity: 1,
+				unit: 'lb',
+				name: 'turkey',
+				note: null,
+				status: 'parsed'
+			},
+			{ rawText: '1 onion', quantity: 1, unit: null, name: 'onion', note: null, status: 'parsed' }
+		],
 		instructions: ['Brown the turkey.', 'Simmer.'],
 		createdAt: new Date()
 	};
