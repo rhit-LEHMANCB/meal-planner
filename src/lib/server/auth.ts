@@ -1,3 +1,4 @@
+import { redirect } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { isAllowed, parseAllowlist } from '$lib/domain/allowlist';
 
@@ -17,4 +18,13 @@ export const checkAccess = (
 	if (!isAllowed(claims.email, allowlist)) return 'not-allowed';
 	if (claims.email_verified !== true) return 'unverified';
 	return null;
+};
+
+/**
+ * The signed-in user's id for a protected route. The hook already redirects signed-out visitors,
+ * so this is a second guard: a route can never run a user query without an owner.
+ */
+export const requireUserId = (locals: App.Locals): string => {
+	if (!locals.userID) throw redirect(303, '/signin');
+	return locals.userID;
 };

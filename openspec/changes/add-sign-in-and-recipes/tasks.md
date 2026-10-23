@@ -27,10 +27,10 @@
 
 ## 5. Recipe screens
 
-- [ ] 5.1 Build the recipe list with search, empty and no-results states from the mockup, using `list`; verify the list scenarios by hand
-- [ ] 5.2 Build the new-recipe and edit pages with the shared form, server actions and inline errors; verify create and edit scenarios by hand
-- [ ] 5.3 Build the detail page with the confirmed delete dialog and a 404 for missing or foreign recipes; verify the view, delete and privacy scenarios by hand with two accounts
-- [ ] 5.4 Add a handler-level test that a recipe route called with another user's id returns 404 for load, edit action and delete action
+- [x] 5.1 Build the recipe list with search, empty and no-results states from the mockup, using `list`; verify the list scenarios by hand
+- [x] 5.2 Build the new-recipe and edit pages with the shared form, server actions and inline errors; verify create and edit scenarios by hand
+- [x] 5.3 Build the detail page with the confirmed delete dialog and a 404 for missing or foreign recipes; verify the view, delete and privacy scenarios by hand with two accounts
+- [x] 5.4 Add a handler-level test that a recipe route called with another user's id returns 404 for load, edit action and delete action
 
 ## 6. Integration and rollout
 
