@@ -6,6 +6,12 @@ name: CI
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # Placeholders so $env/static/public type-checks and builds. Real values live in apphosting.yaml.
+    env:
+      PUBLIC_FB_PROJECT_ID: ci
+      PUBLIC_FB_API_KEY: ci
+      PUBLIC_FB_AUTH_DOMAIN: ci
+      PUBLIC_FB_APP_ID: ci
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -15,4 +21,7 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run check
+      - run: npm run check:migrations
       - run: npm test
+      - run: npm run build
+      - run: npm run check:server

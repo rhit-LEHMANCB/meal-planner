@@ -65,6 +65,8 @@ export const recipeIngredients = pgTable('recipe_ingredients', {
 		.references(() => recipes.id, { onDelete: 'cascade' }),
 	foodId: uuid('food_id').references(() => foods.id),
 	rawText: text('raw_text').notNull(),
+	/** Display order within the recipe, starting at 0. */
+	position: integer('position').notNull().default(0),
 	quantity: numeric('quantity', { precision: 9, scale: 3 }),
 	unit: text('unit'),
 	note: text('note'),
