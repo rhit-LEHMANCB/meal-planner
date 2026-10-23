@@ -19,11 +19,13 @@
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
-		"check:server": "node scripts/check-server-imports.mjs"
+		"check:server": "node scripts/check-server-imports.mjs",
+		"db:smoke": "tsx scripts/db-smoke.ts"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
-		"@neondatabase/serverless": "^1.2.0",
+		"@neon/config": "^1.9.3",
+		"@neon/env": "^1.6.4",
 		"@playwright/test": "^1.60.0",
 		"@sveltejs/adapter-auto": "^7.0.1",
 		"@sveltejs/kit": "^2.70.3",
@@ -33,7 +35,6 @@
 		"@types/node": "^22",
 		"@vitest/browser-playwright": "^4.1.8",
 		"drizzle-kit": "^0.31.10",
-		"drizzle-orm": "^0.45.4",
 		"eslint": "^10.4.1",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.19.0",
@@ -55,9 +56,11 @@
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "^1.1.0",
+		"@neondatabase/serverless": "^1.2.0",
 		"@skeletonlabs/skeleton": "^5.0.1",
 		"@skeletonlabs/skeleton-svelte": "^5.0.1",
 		"@tabler/icons-svelte": "^3.49.0",
+		"drizzle-orm": "^0.45.4",
 		"firebase": "^12.19.0",
 		"firebase-admin": "^13.10.0",
 		"zod": "^4.6.7"

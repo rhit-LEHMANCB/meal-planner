@@ -1,4 +1,4 @@
-import { adminAuth } from '$lib/server/admin';
+import { getAdminAuth } from '$lib/server/admin';
 import { redirect, type Handle } from '@sveltejs/kit';
 
 export const handle = (async ({ event, resolve }) => {
@@ -7,7 +7,7 @@ export const handle = (async ({ event, resolve }) => {
 	event.locals.userID = null;
 
 	try {
-		const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie ?? '');
+		const decodedClaims = await getAdminAuth().verifySessionCookie(sessionCookie ?? '');
 		event.locals.userID = decodedClaims.uid;
 	} catch {
 		if (isAuthenticationRequired(event.url.pathname)) {

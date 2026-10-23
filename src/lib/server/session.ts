@@ -1,10 +1,11 @@
 import { error, type Cookies } from '@sveltejs/kit';
-import { adminAuth } from './admin';
+import { getAdminAuth } from './admin';
 
 const EXPIRES_IN = 60 * 60 * 24 * 5 * 1000; // 5 days
 
 /** Exchanges a freshly issued Firebase ID token for the httpOnly `__session` cookie. */
 export const setSessionCookie = async (cookies: Cookies, idToken: string) => {
+	const adminAuth = getAdminAuth();
 	const decodedIdToken = await adminAuth.verifyIdToken(idToken);
 
 	if (new Date().getTime() / 1000 - decodedIdToken.auth_time >= 5 * 60) {

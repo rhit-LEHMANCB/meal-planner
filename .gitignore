@@ -31,3 +31,4 @@ test-results
 
 # QA credentials for the dev-lifecycle skill
 .env.qa
+.neon

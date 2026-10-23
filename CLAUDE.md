@@ -30,12 +30,15 @@ Mockups: https://claude.ai/artifact/LZ2eJMT726E4PtF5XzNMd5 (weekly plan, import 
 
 ## Deployment
 
-Fill these in once the environments exist; the `dev-lifecycle` skill reads them.
+Early development: there is a single environment, production. No separate dev site yet.
 
-- Dev Firebase project id: TODO
-- Dev URL: TODO
-- Dev Neon branch: TODO (never point QA or tests at the production database)
-- GitHub environments: `develop` and `production`, each with the secrets and vars used in `.github/workflows/firebase-hosting-merge.yml`.
+- Firebase project id: `lehman-meals`
+- Neon: project `plain-wind-36684347` (org `org-green-unit-56216445`), branch `production`. `neon.ts` is the Neon config; `neon env pull` refreshes `.env`.
+- `DATABASE_URL` is the pooled string the app uses; `DATABASE_URL_UNPOOLED` is the direct one drizzle-kit uses for migrations.
+- Schema changes: edit `schema.ts`, then `npm run db:generate` and `npm run db:migrate` (migrations are committed under `drizzle/`). `npm run db:smoke` proves the connection with a write, read and delete.
+- `/api/health` returns `{"db":"ok"}` when the database is reachable.
+- Because there is no dev environment, run QA and tests against a Neon branch (`neon checkout <name> --create`), never the `production` branch, and do not run `dev-lifecycle` QA until a dev site exists.
+- GitHub environment: `production` with the secrets and vars used in `.github/workflows/firebase-hosting-merge.yml`.
 
 ## Process
 
