@@ -1,7 +1,7 @@
 # Lifecycle: ai-recipe-import
 
 - Branch: `ai-recipe-import`
-- Stage: 4 Review (resumed after second halt)
+- Stage: 5 Ship to develop
 - Review round: 5 (3 of 3, plus two authorized by the user)
 - QA cycle: 0 of 3
 - Started: 2026-10-23
@@ -113,9 +113,15 @@ Run 2026-10-23. GitHub backend: `gh`.
 - Round 2 (2026-10-23): 0 blockers, 1 major, 6 minors, 2 nits. Fixed: the major (a link whose page the model found no recipe in now falls back to pasted text with the link kept, as the blocked-link requirement says; test added); the midnight-UTC window (reserving a slot now moves the row to today in the same statement; integration test added, so the round 1 deferred item is closed); API failures are now logged with error class and status only; `<form>` is no longer dropped from page text; source link capped at 2048 characters; meaningless `source` removed from a failed save. Design corrected: `BODY_SIZE_LIMIT` applies before the hook (public routes too) and a photo over 6 MB without browser shrinking gets a plain 413 (accepted). Not changed: a blocked link starts the 10 s cooldown, as the spec says ("of any source").
 - Round 3 (2026-10-23): 0 blockers, 1 major, 3 minors, 1 nit. Major: regex HTML stripping (`page-text.ts`, `schema-org.ts`) was quadratic on hostile pages (many unclosed `<nav>`, `<!--` or JSON-LD scripts), so one import of a crafted 2 MB page could block the single instance for minutes. Fixed after the round, on the branch: a one-pass tokenizer (`html-scan.ts`) now drives page text and the JSON-LD finder, tag stripping in JSON-LD values stops at the next `<` and long values are capped; tests time 2 MB hostile pages (each well under 1.5 s). Minors also fixed: an answer cut off at `max_tokens` is flagged and the review warns; a photo the API refuses (400/413) gets "That photo could not be read" instead of "unavailable"; the photo submit is disabled while the browser shrinks the photo. Nit not fixed: test-only options on `safeFetch` (deferred). These fixes have NOT been through a review round.
 - Round 4 (2026-10-23, authorized by the user): 0 blockers, 1 major, 6 minors, 4 nits. Major: the scanner lower-cased the page with `toLowerCase()` and used those offsets on the original; characters such as "İ" grow when lower-cased, so JSON-LD after them was cut wrong and the import fell through to the AI. Fixed after the round: only ASCII letters are lower-cased (length kept), with a regression test. Minors fixed: a ">" inside a quoted attribute no longer ends a tag; a lone "<" is text without swallowing the next tag; only a real `type` attribute marks JSON-LD; a Recipe stub with no ingredients and no steps falls through to the page text, and `mainEntity` is followed; all instruction strings share one character budget; the delimiter strip repeats until stable; only image-related 400s (and 413) count as an unreadable photo, others stay "unavailable". Nits: a `<title>` inside a dropped element is ignored; comment on first-main/article. Not changed: wall-clock thresholds in the hostile-page tests (kept generous). These fixes have NOT been reviewed. 372 tests pass.
+- Round 5 (2026-10-23, authorized by the user): 0 blockers, 0 majors, 4 minors, 1 nit. Review loop exits. All five deferred (not fixed, so the shipped code is what was reviewed).
 
 ## Deferred findings
 
+- Round 5 minor: the HTML tokenizer treats "< a" (space before a letter) as a tag, and an unterminated quote inside a tag (`<a title=Joe's>`) ends the scan, dropping the rest of the page; require the name right after "<" and fall back to the next ">" on an unterminated quote.
+- Round 5 minor: an unclosed dropped element (`<nav>` without `</nav>`) hides the rest of the page text; cap the skip (for example at `main`, `article` or `h1`).
+- Round 5 minor: `findRecipeJsonLd` returns the first Recipe node only (a stub before the full recipe sends the page to the AI) and does not match `@type` values like "https://schema.org/Recipe".
+- Round 5 minor: a structured-data draft is not clamped to the form limits (100 ingredients, 50 steps, name/note lengths), so such a page fails on save without an earlier notice.
+- Round 5 nit: `BODY_SIZE_LIMIT=6M` applies to every route; documented in the design, a per-route check would be tighter.
 - Known gap: without JavaScript, editing a row's fields does not clear its hidden display line, so the line can keep the old wording; reordering rows also needs JavaScript.
 - Round 3 nit: `safeFetch` and `checkUrl` accept test-only options (`isAllowedAddress`, `anyPort`, `resolve`) on their production signature; nothing passes them today, but a future caller could weaken the checks. Move them behind a test-only factory.
 - Known gap: a photo over 6 MB without browser shrinking gets the server's plain 413 page.
