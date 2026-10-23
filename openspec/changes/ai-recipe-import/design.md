@@ -21,8 +21,9 @@ See proposal.md for why. Current state that shapes the approach:
 
 **Non-Goals:**
 
-- Food matching, nutrition, a `name` column on `recipe_ingredients` (next change).
-- Changing how the manual form or the edit page stores ingredients.
+- Food matching and nutrition (next change).
+- Changing how steps are entered (still one textarea of lines).
+- Rewriting existing plain-text ingredient rows in the database; they convert only when their recipe is saved.
 - Streaming progress to the browser.
 
 ## Decisions
@@ -32,19 +33,24 @@ See proposal.md for why. Current state that shapes the approach:
 `src/routes/recipes/import/+page.server.ts` with actions `link`, `text`, `photo` and `save`. `load` returns the AI imports left today. The import actions return `{ draft, notices, source }` and the page switches to the review state when `form.draft` is set; `save` re-validates and redirects to `/recipes/[id]`. Discard is a link to `/recipes`.
 
 - The draft travels in the review form's fields (stateless). Alternative (draft table) rejected: it stores data before the user confirms and needs cleanup.
-- Ingredient rows are posted as parallel arrays (`ingredientRaw[]`, `ingredientAmount[]`, `ingredientUnit[]`, `ingredientName[]`, `ingredientNote[]`), steps as one textarea of lines, matching the manual form. Rows can be removed and added on the review (client-side `$state` list; without JS the page still posts what is shown).
+- Ingredient rows use the shared row editor (decision 12) and are posted as parallel arrays (`ingredientRaw[]`, `ingredientAmount[]`, `ingredientUnit[]`, `ingredientName[]`, `ingredientNote[]`), steps as one textarea of lines, the same as the add and edit forms.
 - Source panel on the left, review on the right, step indicator (Source, Review, Save), as in the mockup. The "Matched food" column becomes "Name / note" and the macro bar is left out.
 
-### 2. Import draft and validation in `src/lib/domain/recipe-import.ts`
+### 2. One structured recipe form for add, edit and import
 
-- `ImportDraft`: `{ title, servings: number | null, totalMinutes, sourceUrl, ingredients: DraftIngredient[], steps: string[] }`, `DraftIngredient`: `{ raw, quantity, unit, name, note, status: 'parsed' | 'check' | 'skipped' }`.
-- `parseImportForm(formData)` reuses `LIMITS` and the same messages as `parseRecipeForm` and returns `{ ok, value }` or `{ errors, values }` so the review re-renders with the user's edits. Amount accepts decimals and simple fractions (`1/2`, `1 1/2`) and is stored as a number with up to 3 decimals; unit max 20 chars; name and note max 100 chars.
-- `status` is recomputed on save from the submitted fields, never trusted from the client.
-- The display line saved as `raw_text` is rebuilt from the edited fields (`2 tbsp chili powder, divided`) when the user changed them, else the original line, so the existing detail and edit pages keep working unchanged.
+- `src/lib/domain/recipe-form.ts` replaces the ingredients textarea field with ingredient rows: `parseRecipeForm` reads the parallel row arrays (plus an optional `pastedLines` textarea, see decision 12) and returns `RecipeInput` with `ingredients: IngredientInput[]` (`{ rawText, quantity, unit, name, note, status }`). Add, edit and the import `save` action all call it, so there is one set of rules and messages. `LIMITS` gains `unitMax: 20`, `nameMax: 100`, `noteMax: 100`; `ingredientsMax` and `ingredientLineMax` keep their values.
+- Errors are reported per row (`ingredients.3.quantity`) so the row editor can show them next to the field; `values` echoes every row back so nothing typed is lost.
+- Amount accepts decimals and simple fractions (`1/2`, `1 1/2`, `½`), must be positive, and is stored with up to 3 decimals. A row whose fields are all empty is dropped. A row with any field filled needs a name.
+- `status` (`parsed` | `check` | `skipped`) is computed on the server from the submitted fields, never taken from the client: amount and a known unit (or a count food with no unit) → `parsed`; no amount and the name or note says "to taste" / "as needed" / "optional" → `skipped`; anything else → `check`.
+- `ImportDraft` (`src/lib/domain/recipe-import.ts`) is the shape the import actions hand to the review: same fields with `servings: number | null`, plus the counts of dropped rows. It is rendered into the same form.
+
+### 2a. The display line (`raw_text`)
+
+The detail page reads `raw_text`, so it must always describe the row. Each row posts its hidden `ingredientRaw` (the line as written, from import, the parser or the database). The row editor clears it as soon as the user changes amount, unit, name or note. On save, a non-empty `ingredientRaw` is kept, an empty one is rebuilt from the fields (`2 tbsp chili powder, divided`). So an untouched imported line keeps its original wording ("1 can (15 oz) kidney beans, drained"), and an edited one matches its new fields. Alternative (always rebuild) rejected: it silently rewrites lines like the one above.
 
 ### 3. Pure ingredient-line parser `src/lib/domain/ingredient-line.ts`
 
-Used for JSON-LD lines (which are plain strings) and as a fallback to fill status for AI rows. Handles leading numbers, decimals, fractions and unicode fractions (`½`), ranges (`2-3` takes the low value and keeps the line flagged `check`), a known-unit table (g, kg, oz, lb, ml, l, cup, tbsp, tsp, pinch, clove, can, each, plus plurals and abbreviations), a parenthetical size (`1 can (15 oz)` keeps `can`), and `to taste` / `as needed` → `skipped`. Unknown unit with an amount → `check`. Vitest table tests.
+Used for JSON-LD lines (which are plain strings), to pre-fill old plain-text rows when a recipe is opened for editing, and for "add several lines" in the row editor. It is pure and has no server imports, so the row editor runs the same code in the browser. Handles leading numbers, decimals, fractions and unicode fractions (`½`), ranges (`2-3` takes the low value and keeps the line flagged `check`), a known-unit table (g, kg, oz, lb, ml, l, cup, tbsp, tsp, pinch, clove, can, each, plus plurals and abbreviations), a parenthetical size (`1 can (15 oz)` keeps `can`), and `to taste` / `as needed` → `skipped`. Unknown unit with an amount → `check`. Vitest table tests.
 
 ### 4. Safe fetch `src/lib/server/ai/safe-fetch.ts`
 
@@ -93,16 +99,29 @@ Alternative: in-memory map. Rejected: lost on every scale-to-zero restart, wrong
 
 ### 10. Saving
 
-`RecipeStore` gets `createImported(userId, input: ImportedRecipeInput)` that writes the recipe and ingredient rows (`raw_text`, `position`, `quantity`, `unit`, `note`, `match_status`) in one `db.batch`, sharing the existing private helpers. Existing `create`/`update` are untouched. `quantity` is written as a string for the `numeric` column.
+- A new nullable `name text` column on `recipe_ingredients` (same migration as `import_usage`). Alternative (re-derive the name from `raw_text` on every load) rejected: it can drift from what the user typed.
+- `RecipeStore.create` and `update` take the structured `RecipeInput` and write `raw_text`, `position`, `quantity`, `unit`, `name`, `note`, `match_status` in the same single `db.batch` as today (update still deletes and re-inserts the rows, which is safe because every field is posted back). `quantity` is written as a string for the `numeric` column. No separate import save path: the import `save` action calls `create`.
+- `RecipeStore.get` returns `ingredients: StoredIngredient[]` (`{ rawText, quantity, unit, name, note, status }`) instead of `string[]`. The detail page shows `rawText` as before.
+- Edit `load`: rows with `match_status = 'unparsed'` (saved before this change) are turned into editor rows by the line parser, keeping `rawText` as their display line. This is only what the form shows; the database changes only when the user saves.
 
 ### 11. Recipe list entry
 
 "Import recipe" (secondary button) next to "Add recipe", and in the empty state next to "Add your first recipe".
 
+### 12. Shared ingredient row editor `src/lib/components/IngredientRows.svelte`
+
+- One component used by the import review, `recipes/new` and `recipes/[id]/edit` (through `RecipeForm.svelte`, whose ingredients textarea goes away). Each row: amount, unit, name, note inputs with labels (visually compact, labelled for screen readers and Playwright: "Amount, row 2"), the status chip computed with the same domain function as the server, move up, move down and remove buttons with `aria-label`s. An "Add ingredient" button adds an empty row.
+- "Add several lines": a labelled textarea ("Paste ingredient lines") and an "Add lines" button that runs the line parser in the browser and appends rows. Without JS the textarea is posted as `pastedLines` and `parseRecipeForm` appends its parsed rows after the others, so it still works.
+- Without JS the form renders the current rows plus 3 empty rows; move buttons are JS only (reordering without JS is out of scope).
+- Steps stay a textarea of lines.
+
 ## Risks / Trade-offs
 
 - [Many recipe sites block server fetches (Cloudflare, 403)] → clear fallback to pasted text, link kept; no headless browser.
-- [Editing an imported recipe on the existing edit page rewrites its ingredients as free text with `unparsed` status, dropping amount/unit/note] → accepted for now: the next (nutrition) change re-parses ingredient lines; noted in the deferred list.
+- [Old plain-text rows are pre-filled by a heuristic parser, which can split a line wrongly] → the user sees every row and its chip before saving, and nothing changes until they save.
+- [Without JS, editing a row's fields does not clear its hidden display line, so the line can keep the old wording] → only affects scripting-off browsers; the structured fields are still correct. Recorded for QA.
+- [The add and edit forms change shape, breaking existing route specs and the baseline QA suite] → both are updated in this change (tasks 4.2, 4.3) and must pass before merge.
+- [During the rollout window old code runs on the new schema] → `name` is nullable and old code never reads it; rows old code writes stay `unparsed` and are pre-filled on the next edit.
 - [`BODY_SIZE_LIMIT` raises the request size cap for every route] → 6 MB is still small, and only signed-in users reach non-public routes; the hook runs before body parsing.
 - [Regex HTML stripping misses content on unusual pages] → the model is tolerant of noise; "no recipe found" falls back to paste.
 - [Prompt injection through page text] → model output only reaches the database through the validated save after the user reviews it; there are no tools with side effects.
@@ -112,7 +131,7 @@ Alternative: in-memory map. Rejected: lost on every scale-to-zero restart, wrong
 
 ## Migration Plan
 
-1. Edit `schema.ts`, run `npm run db:generate`, commit the new `drizzle/0002_*.sql` (one `CREATE TABLE`, additive; passes `npm run check:migrations`).
-2. Merge to `develop` runs it on the Neon `dev` branch; merge to `production` runs it on production before the new code is live for long. Old code ignores the new table.
-3. Rollback: revert the code; the table can stay (unused) and be dropped later with an `allow-destructive` migration.
+1. Edit `schema.ts`, run `npm run db:generate`, commit the new `drizzle/0002_*.sql` (`CREATE TABLE import_usage` and `ALTER TABLE recipe_ingredients ADD COLUMN name text`, both additive; passes `npm run check:migrations`).
+2. Merge to `develop` runs it on the Neon `dev` branch; merge to `production` runs it on production before the new code is live for long. Old code ignores the new table and column.
+3. Rollback: revert the code; the table and column can stay (unused) and be dropped later with an `allow-destructive` migration. Rows saved by the new code keep a correct `raw_text`, so old code still displays them.
 4. Set `BODY_SIZE_LIMIT` in `apphosting.yaml` (plain value, runtime) so both backends get it.

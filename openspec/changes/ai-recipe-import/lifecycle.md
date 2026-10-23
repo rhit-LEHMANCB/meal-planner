@@ -10,6 +10,8 @@
 
 (approved: yes, 2026-10-23)
 
+**Revision at Gate A (2026-10-23, from the user).** Editing must not lose ingredient amount, unit or note. Decisions: the add and edit forms both switch to the same structured row editor as the import review (amount, unit, name, note, status chip, add, remove, reorder, paste several lines); a nullable `name` column is added to `recipe_ingredients` in the same additive migration; older plain-text (`unparsed`) rows are pre-filled by the built-in line parser when opened for editing and stored structured only when saved. This replaces the "manual form unchanged", "no column changes" and "Manual recipes keep `unparsed`" points below. `recipes` becomes a modified capability, and `tests/qa/smoke.spec.ts` is updated for rows.
+
 **Goal.** A signed-in user adds a recipe by importing it from a link, pasted text or a photo (in that priority order). Every import ends on an editable review screen; nothing is written to the recipe tables until the user confirms with "Save to recipe shelf".
 
 **Scope**

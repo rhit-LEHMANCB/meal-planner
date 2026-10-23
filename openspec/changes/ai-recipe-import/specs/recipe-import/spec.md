@@ -60,7 +60,7 @@ The system SHALL validate a reviewed import on save with the same rules and limi
 
 ### Requirement: Ingredients are reviewed as structured rows
 
-The system SHALL show each imported ingredient as a row with the line as written plus editable amount, unit, name and note, and a status chip: "Parsed" when amount and unit are understood, "Check" when an amount or unit is missing or not recognized, and "No amount" for lines like "salt to taste". Saved imported ingredients SHALL keep their amount, unit and note.
+The system SHALL show each imported ingredient as a row with the line as written plus editable amount, unit, name and note, and a status chip: "Parsed" when amount and unit are understood, "Check" when an amount or unit is missing or not recognized, and "No amount" for lines like "salt to taste". Saved imported ingredients SHALL keep their amount, unit, name and note.
 
 #### Scenario: Parsed row
 
@@ -80,7 +80,7 @@ The system SHALL show each imported ingredient as a row with the line as written
 #### Scenario: Structured fields are kept
 
 - **WHEN** the user saves an import whose ingredient row has amount 2, unit "tbsp", name "chili powder" and no note, then opens the recipe
-- **THEN** the ingredient appears in the recipe in its original position and its amount and unit are stored with it
+- **THEN** the ingredient appears in the recipe in its original position, and its amount, unit and name are shown unchanged when the recipe is opened for editing
 
 #### Scenario: No nutrition shown
 
