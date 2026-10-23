@@ -21,9 +21,9 @@
 
 ## 4. Recipe data layer
 
-- [ ] 4.1 Add the Zod recipe form schema with the limits from design.md and unit tests for every validation scenario in `recipes`
-- [ ] 4.2 Add `makeRecipeStore(db)` with `list`, `get`, `create`, `update`, `remove`, each scoped by user and using `db.batch` for multi-step writes; export `createDb(url)` from `db/index.ts`
-- [ ] 4.3 Add `TEST_DATABASE_URL` support (pointed at the Neon `dev` branch, never production) and write integration tests (skipped when unset) for ordering, blank-line dropping, search, owner isolation on get, update and remove, and cascade delete, each using a unique throwaway user id and cleaning up; verify they pass against the dev branch
+- [x] 4.1 Add the Zod recipe form schema with the limits from design.md and unit tests for every validation scenario in `recipes`
+- [x] 4.2 Add `makeRecipeStore(db)` with `list`, `get`, `create`, `update`, `remove`, each scoped by user and using `db.batch` for multi-step writes; export `createDb(url)` from `db/index.ts`
+- [x] 4.3 Add `TEST_DATABASE_URL` support (pointed at the Neon `dev` branch, never production) and write integration tests (skipped when unset) for ordering, blank-line dropping, search, owner isolation on get, update and remove, and cascade delete, each using a unique throwaway user id and cleaning up; verify they pass against the dev branch
 
 ## 5. Recipe screens
 
