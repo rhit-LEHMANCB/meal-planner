@@ -1,8 +1,8 @@
 # Lifecycle: ai-recipe-import
 
 - Branch: `ai-recipe-import`
-- Stage: HALTED at 4 Review (round 3 found a major)
-- Review round: 3 of 3
+- Stage: 4 Review (resumed after halt)
+- Review round: 3 of 3, plus round 4 authorized by the user
 - QA cycle: 0 of 3
 - Started: 2026-10-23
 
@@ -138,3 +138,5 @@ HALTED on 2026-10-23 at stage 4 (review), after round 3 of 3.
 - Evidence: round findings in Review rounds above; draft PR https://github.com/rhit-LEHMANCB/meal-planner/pull/9.
 - Next step for a human: review the round 3 fixes (`git diff 9982bc2 c6b8b7c`, mainly `src/lib/server/ai/html-scan.ts` and `src/lib/server/ai/page-text.ts`), or ask for one more independent review round. If satisfied, say so and the run can resume at stage 5 (mark the draft PR ready, wait for `verify`, merge to develop with a merge commit, then QA on the dev site and the production PR).
 
+
+Resumed on 2026-10-23. User: "Run one more independent review round on the round 3 fixes. If it has no blockers or majors, resume the lifecycle at stage 5 (merge to develop, QA, production PR)."
