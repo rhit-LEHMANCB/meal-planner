@@ -37,15 +37,15 @@
 
 ## 4. Plan store
 
-- [ ] 4.1 Add `src/lib/server/plan.ts` `makePlanStore(db)` with `getWeek(userId, monday)`: entries joined to recipes, foods and batches, grouped by date and slot, ordered by position; plus the fridge batches with their draws. Verify an integration spec that another user's week reads empty.
-- [ ] 4.2 Implement `addCook` (week upsert, recipe ownership check, meal and batch in one `db.batch` with code-generated ids) and `addFood` (optionally creating the custom food first). Verify integration specs: batch spare and free equal cooked − eaten; another user's recipe or food is refused as not found.
-- [ ] 4.3 Implement `addLeftover` as one conditional CTE statement (free servings, owner, not thrown out), plus the after-cook check. Verify integration specs:
+- [x] 4.1 Add `src/lib/server/plan.ts` `makePlanStore(db)` with `getWeek(userId, monday)`: entries joined to recipes, foods and batches, grouped by date and slot, ordered by position; plus the fridge batches with their draws. Verify an integration spec that another user's week reads empty.
+- [x] 4.2 Implement `addCook` (week upsert, recipe ownership check, meal and batch in one `db.batch` with code-generated ids) and `addFood` (optionally creating the custom food first). Verify integration specs: batch spare and free equal cooked − eaten; another user's recipe or food is refused as not found.
+- [x] 4.3 Implement `addLeftover` as one conditional CTE statement (free servings, owner, not thrown out), plus the after-cook check. Verify integration specs:
   - over-draw refused
   - a slot before the cook is refused
   - another user's batch is not found
   - two parallel draws of the last serving: exactly one succeeds
-- [ ] 4.4 Implement `updateEntry` (cook servings delta guarded so free ≥ 0; leftover delta via CTE; food amount and unit) and `removeEntry` (leftover gives servings back; a cook with draws needs `confirm`, then removes draws, batch and cook in one `db.batch`). Verify integration specs for each path, including "cook below drawn" refused and an entry owned by someone else being not found.
-- [ ] 4.5 Implement `listLeftovers(userId, today)` (fridge plus left-the-fridge in the last 14 days, using `batchState`) and `throwOut(userId, batchId)`. Verify integration specs: throw-out zeroes free servings, keeps draws, and isn't possible on another user's batch.
+- [x] 4.4 Implement `updateEntry` (cook servings delta guarded so free ≥ 0; leftover delta via CTE; food amount and unit) and `removeEntry` (leftover gives servings back; a cook with draws needs `confirm`, then removes draws, batch and cook in one `db.batch`). Verify integration specs for each path, including "cook below drawn" refused and an entry owned by someone else being not found.
+- [x] 4.5 Implement `listLeftovers(userId, today)` (fridge plus left-the-fridge in the last 14 days, using `batchState`) and `throwOut(userId, batchId)`. Verify integration specs: throw-out zeroes free servings, keeps draws, and isn't possible on another user's batch.
 
 ## 5. Recipe delete
 
