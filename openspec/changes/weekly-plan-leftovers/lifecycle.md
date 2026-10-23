@@ -2,7 +2,7 @@
 
 - Branch: `weekly-plan-leftovers`
 - Stage: 6 QA (cycle 1 found an app bug; fix in progress)
-- Review round: 2 of 3
+- Review round: 3 of 3
 - QA cycle: 1 of 3
 - Started: 2026-10-23
 
@@ -120,6 +120,9 @@ Deviation: the UI was not driven in `npm run dev`. The local `.env` points at pr
     - no route-level tests for the action status mapping and the `confirm` round trip (left to QA on the dev site)
     - integration specs skipped in CI by repo convention (they ran locally on the Neon `dev` branch: 34 files, 443 tests)
     - UTC vs local "today" near midnight (a known risk in the design)
+- Round 3 (fresh Sonnet Explore reviewer, QA fix branch only): 0 blockers, 0 majors, 1 minor, 1 nit. Both are deferred:
+  - the new component spec checks that the browser no longer blocks the submit, not the server message, which QA cycle 2 checks end to end
+  - no test for the phone day heading text
 
 ## Deferred findings
 
