@@ -25,6 +25,7 @@ describe('recipe list', () => {
 		const out = html(ListPage, { data: { q: '', total: 0, recipes: [] } });
 		expect(out).toContain('You have no recipes yet');
 		expect(out).toContain('Add your first recipe');
+		expect(out).toContain('href="/recipes/import"');
 		expect(out).not.toContain('Search by title');
 	});
 
@@ -34,6 +35,8 @@ describe('recipe list', () => {
 		expect(out).toContain('6 servings · 55 min');
 		expect(out).toContain('9 ingredients · example.com');
 		expect(out).toContain('/recipes/11111111-1111-4111-8111-111111111111');
+		expect(out).toContain('Import recipe');
+		expect(out).toContain('href="/recipes/import"');
 	});
 
 	it('says when a search matches nothing and offers to clear it', () => {

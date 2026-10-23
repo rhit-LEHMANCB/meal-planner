@@ -19,6 +19,10 @@ env:
   - variable: HOST_HEADER
     value: x-forwarded-host
     availability: [RUNTIME]
+  # adapter-node's default request body limit is 512K; recipe photo uploads may be up to 5 MB.
+  - variable: BODY_SIZE_LIMIT
+    value: 6M
+    availability: [RUNTIME]
 
   # Public Firebase web config: not secret, inlined into the client bundle at build time.
   - variable: PUBLIC_FB_PROJECT_ID

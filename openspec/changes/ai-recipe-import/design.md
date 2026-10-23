@@ -50,7 +50,7 @@ The detail page reads `raw_text`, so it must always describe the row. Each row p
 
 ### 3. Pure ingredient-line parser `src/lib/domain/ingredient-line.ts`
 
-Used for JSON-LD lines (which are plain strings), to pre-fill old plain-text rows when a recipe is opened for editing, and for "add several lines" in the row editor. It is pure and has no server imports, so the row editor runs the same code in the browser. Handles leading numbers, decimals, fractions and unicode fractions (`½`), ranges (`2-3` takes the low value and keeps the line flagged `check`), a known-unit table (g, kg, oz, lb, ml, l, cup, tbsp, tsp, pinch, clove, can, each, plus plurals and abbreviations), a parenthetical size (`1 can (15 oz)` keeps `can`), and `to taste` / `as needed` → `skipped`. Unknown unit with an amount → `check`. Vitest table tests.
+Used for JSON-LD lines (which are plain strings), to pre-fill old plain-text rows when a recipe is opened for editing, and for "add several lines" in the row editor. It is pure and has no server imports, so the row editor runs the same code in the browser. Handles leading numbers, decimals, fractions and unicode fractions (`½`), ranges (`2-3` takes the low value; the user sees the original line under the row), a known-unit table (g, kg, oz, lb, ml, l, cup, tbsp, tsp, pinch, clove, can, each, plus plurals and abbreviations), a parenthetical size (`1 can (15 oz)` keeps `can`), and `to taste` / `as needed` → `skipped`. A unit is only recognized from the table, so the parser never produces an unknown unit; an unknown unit typed by the user or returned by the model → `check`. Vitest table tests.
 
 ### 4. Safe fetch `src/lib/server/ai/safe-fetch.ts`
 
