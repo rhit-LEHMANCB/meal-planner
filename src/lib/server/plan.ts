@@ -7,7 +7,10 @@ import {
 	isAfterCook,
 	isPastEatBy,
 	mondayOf,
-	type BatchState,
+	type Batch,
+	type BatchDraw,
+	type EntryKind,
+	type PlanEntry,
 	type Slot
 } from '$lib/domain/plan';
 import type { CookInput, EntryUpdate, LeftoverInput, SlotTarget } from '$lib/domain/plan-form';
@@ -15,60 +18,7 @@ import { getDb, type Db } from './db';
 import { foodUnits, foods, leftoverBatches, mealPlans, plannedMeals, recipes } from './db/schema';
 import { makeFoodStore } from './foods';
 
-export type EntryKind = 'cook' | 'leftover' | 'food';
-
-export interface PlanEntry {
-	id: string;
-	date: string;
-	slot: Slot;
-	kind: EntryKind;
-	title: string;
-	/** Cook: servings eaten. Leftover: servings drawn. */
-	servings: number;
-	/** Cook: servings cooked. */
-	cooked: number | null;
-	/** Cook: servings planned as leftovers from its batch. */
-	drawn: number;
-	/** The batch a cook made or a leftover draws from. */
-	batchId: string | null;
-	/** Leftover: its batch's eat-by date, and whether this slot is after it. */
-	eatBy: string | null;
-	pastEatBy: boolean;
-	/** Leftover whose batch was thrown out. */
-	gone: boolean;
-	/** Food: the food, amount, unit and the units it can use. */
-	foodId: string | null;
-	amount: number | null;
-	unit: string | null;
-	units: string[];
-}
-
-export interface BatchDraw {
-	entryId: string;
-	date: string;
-	slot: Slot;
-	servings: number;
-	pastEatBy: boolean;
-}
-
-export interface Batch {
-	id: string;
-	recipeId: string;
-	title: string;
-	cookedOn: string;
-	/** The slot the cook is in; null if the cook is gone. */
-	cookSlot: Slot | null;
-	eatBy: string | null;
-	cooked: number;
-	eaten: number;
-	spare: number;
-	free: number;
-	thrownOutAt: Date | null;
-	draws: BatchDraw[];
-	state: BatchState;
-	/** For batches that left the fridge: the day they did. */
-	leftOn: string | null;
-}
+export type { Batch, BatchDraw, PlanEntry };
 
 export type PlanResult<T = void> =
 	| ({ ok: true } & (T extends void ? object : { value: T }))

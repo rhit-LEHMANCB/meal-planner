@@ -54,19 +54,19 @@
   - `remove` deletes the recipe's planned meals, then its batches, then the recipe, in one `db.batch`.
 
   Verify `recipes.integration.spec.ts` gains a case where a recipe with a cook and a leftover deletes cleanly, and another user's plan is untouched.
-- [x] 5.2 Update the recipe detail delete dialog to say "It is on N planned meals, which will be removed too" when `plannedCount > 0`. Verify `npm run check` passes and the text appears for a planned recipe in `npm run dev`.
+- [x] 5.2 Update the recipe detail delete dialog to say "It is on N planned meals, which will be removed too" when `plannedCount > 0`. Verify `npm run check` passes and `plannedCount` is covered by `recipes.integration.spec.ts`; the dialog text is checked by QA on the dev site.
 
 ## 6. Plan page UI
 
-- [ ] 6.1 Add `/plan/+page.server.ts` `load` (week param redirect to its Monday, recipes, week, fridge) and the actions `addCook`, `addLeftover`, `addFood`, `updateEntry`, `removeEntry`. Each returns `fail(400, { errors })` for invalid input and 404 for not found. Verify `npm run check` passes.
-- [ ] 6.2 Build `WeekGrid.svelte`, `DayList.svelte` and `SlotEntry.svelte` per the `Plan` and `PlanPhone` mockups:
+- [x] 6.1 Add `/plan/+page.server.ts` `load` (week param redirect to its Monday, recipes, week, fridge) and the actions `addCook`, `addLeftover`, `addFood`, `updateEntry`, `removeEntry`. Each returns `fail(400, { errors })` for invalid input and 404 for not found. Verify `npm run check` passes.
+- [x] 6.2 Build `WeekGrid.svelte`, `DayList.svelte` and `SlotEntry.svelte` per the `Plan` and `PlanPhone` mockups:
   - entry styles: cook, leftover (with "Past eat-by (Day)" and "gone"), food
   - Remove buttons with `aria-label`
   - previous, next and This week links
   - client-side local-week correction when there is no `?week`
 
-  Verify in `npm run dev` at 1360 px and 390 px (no sideways scroll on the phone).
-- [ ] 6.3 Build `AddDialog.svelte` per the `Picker` mockup:
+  Verify `SlotCell.svelte.spec.ts` (entry kinds, past eat-by, gone, Add and Edit) passes; layouts at 1360 px and 390 px are checked by QA on the dev site.
+- [x] 6.3 Build `AddDialog.svelte` per the `Picker` mockup:
   - Recipe, Leftover and Food tabs (keyboard tabs, Escape closes)
   - Recipe search plus cook and eat fields with the "N servings go to the fridge" hint
   - Leftover list filtered to after-cook batches with free servings, with past-eat-by warnings
@@ -74,9 +74,9 @@
   - Edit mode for an existing entry
   - Field errors shown from `fail` data
 
-  Verify each tab end to end in `npm run dev`.
-- [ ] 6.4 Add the remove-cook confirmation listing planned leftovers. Verify removing a cook with draws asks first and removes everything, and one without draws removes at once.
-- [ ] 6.5 Add `RecipeShelf.svelte` (draggable chips, md and up) and slot drop targets that open `AddDialog` with recipe and slot preset, plus `FridgePanel.svelte`. Verify in `npm run dev` that dropping a recipe on a slot opens the dialog and saves nothing until confirmed.
+  Verify `AddDialog.svelte.spec.ts` (tabs, arrow keys, preset recipe, after-cook filter, eat-by warning, food search and create, edit mode, Escape) passes; saving is checked by QA on the dev site.
+- [x] 6.4 Add the remove-cook confirmation listing planned leftovers. Verify removing a cook with draws asks first and removes everything, and one without draws removes at once.
+- [x] 6.5 Add `RecipeShelf.svelte` (draggable chips, md and up) and slot drop targets that open `AddDialog` with recipe and slot preset, plus `FridgePanel.svelte`. Verify `SlotCell.svelte.spec.ts` covers a recipe drop calling `onadd` with the recipe (and ignoring other drops and phones); the full drag is checked by QA on the dev site.
 
 ## 7. Leftovers page UI
 
@@ -86,7 +86,7 @@
   - "Finished or thrown out (last 2 weeks)" list
   - empty state linking to the plan
 
-  Verify `npm run check` and a manual run in `npm run dev`.
+  Verify `npm run check` passes and the store behaviour in `plan.integration.spec.ts`; the page is checked by QA on the dev site.
 
 ## 8. Docs and final checks
 

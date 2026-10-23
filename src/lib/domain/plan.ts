@@ -11,6 +11,9 @@ export const SLOT_LABELS: Record<Slot, string> = {
 	snack: 'Snack'
 };
 
+/** The drag type recipe chips on the plan carry, so other drags (text, files) are ignored. */
+export const RECIPE_DRAG_TYPE = 'application/x-meal-planner-recipe';
+
 /** Leftovers are good for this many days after cooking. */
 export const EAT_BY_DAYS = 4;
 
@@ -88,6 +91,63 @@ export const eatByFor = (cookedOn: string) => addDays(cookedOn, EAT_BY_DAYS);
 export const isPastEatBy = (eatBy: string | null, date: string) => eatBy !== null && date > eatBy;
 
 export type BatchState = 'fridge' | 'finished' | 'thrown_out';
+
+// What the plan store returns for the plan and leftovers pages.
+
+export type EntryKind = 'cook' | 'leftover' | 'food';
+
+export interface PlanEntry {
+	id: string;
+	date: string;
+	slot: Slot;
+	kind: EntryKind;
+	title: string;
+	/** Cook: servings eaten. Leftover: servings drawn. */
+	servings: number;
+	/** Cook: servings cooked. */
+	cooked: number | null;
+	/** Cook: servings planned as leftovers from its batch. */
+	drawn: number;
+	/** The batch a cook made or a leftover draws from. */
+	batchId: string | null;
+	/** Leftover: its batch's eat-by date, and whether this slot is after it. */
+	eatBy: string | null;
+	pastEatBy: boolean;
+	/** Leftover whose batch was thrown out. */
+	gone: boolean;
+	/** Food: the food, amount, unit and the units it can use. */
+	foodId: string | null;
+	amount: number | null;
+	unit: string | null;
+	units: string[];
+}
+
+export interface BatchDraw {
+	entryId: string;
+	date: string;
+	slot: Slot;
+	servings: number;
+	pastEatBy: boolean;
+}
+
+export interface Batch {
+	id: string;
+	recipeId: string;
+	title: string;
+	cookedOn: string;
+	/** The slot the cook is in; null if the cook is gone. */
+	cookSlot: Slot | null;
+	eatBy: string | null;
+	cooked: number;
+	eaten: number;
+	spare: number;
+	free: number;
+	thrownOutAt: Date | null;
+	draws: BatchDraw[];
+	state: BatchState;
+	/** For batches that left the fridge: the day they did. */
+	leftOn: string | null;
+}
 
 export interface BatchStateInput {
 	free: number;
