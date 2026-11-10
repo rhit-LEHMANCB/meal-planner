@@ -2,7 +2,7 @@
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { page } from '$app/state';
-	import { resolve } from '$app/paths';
+	import MainNav from '$lib/components/MainNav.svelte';
 	import { isAuthPage } from '$lib/domain/paths';
 	import type { LayoutProps } from './$types';
 
@@ -12,14 +12,6 @@
 	$effect(() => {
 		document.documentElement.dataset.hydrated = 'true';
 	});
-
-	const nav = [
-		{ href: '/plan', label: 'Plan' },
-		{ href: '/recipes', label: 'Recipes' },
-		{ href: '/grocery', label: 'Grocery list' },
-		{ href: '/leftovers', label: 'Leftovers' },
-		{ href: '/nutrition', label: 'Nutrition' }
-	];
 </script>
 
 <svelte:head>
@@ -29,38 +21,10 @@
 {#if isAuthPage(page.url.pathname)}
 	{@render children()}
 {:else}
-	<!-- Phones: the nav stacks above the page. md and up: side by side, and the nav stays at screen
-	     height while the page scrolls, instead of stretching to the length of the page. -->
-	<div class="flex min-h-screen flex-wrap md:flex-nowrap">
-		<nav
-			aria-label="Main"
-			class="flex flex-[1_1_220px] flex-col gap-7 border-r border-line bg-white p-5 md:sticky md:top-0 md:h-screen md:max-w-[240px] md:shrink-0 md:self-start md:overflow-y-auto"
-		>
-			<div class="font-display text-2xl font-bold text-herb">Meal Planner</div>
-			<ul class="flex flex-col gap-1">
-				{#each nav as item (item.href)}
-					{@const active = page.url.pathname.startsWith(item.href)}
-					<li>
-						<a
-							href={resolve(item.href as '/plan')}
-							aria-current={active ? 'page' : undefined}
-							class="flex min-h-11 items-center rounded-lg px-3 font-medium {active
-								? 'bg-herb-tint text-herb-dark'
-								: 'text-muted hover:bg-herb-tint'}"
-						>
-							{item.label}
-						</a>
-					</li>
-				{/each}
-			</ul>
-			<div class="mt-auto flex flex-col gap-2 text-[13px] text-muted">
-				{#if data.email}<span class="break-all">{data.email}</span>{/if}
-				<form method="POST" action={resolve('/signout')}>
-					<button class="btn btn-secondary min-h-11 px-4 text-sm" type="submit">Sign out</button>
-				</form>
-			</div>
-		</nav>
-		<main class="min-w-0 flex-[999_1_560px] p-6 md:p-9">
+	<!-- Phones: a top bar with a Menu button. md and up: the sidebar beside the page. -->
+	<div class="flex min-h-screen flex-col md:flex-row">
+		<MainNav pathname={page.url.pathname} email={data.email} />
+		<main class="min-w-0 flex-1 p-4 sm:p-6 md:p-9">
 			{@render children()}
 		</main>
 	</div>
