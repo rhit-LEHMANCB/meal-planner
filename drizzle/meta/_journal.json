@@ -29,6 +29,13 @@
       "when": 1792784072740,
       "tag": "0003_premium_dexter_bennett",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794276048200,
+      "tag": "0004_unusual_whizzer",
+      "breakpoints": true
     }
   ]
 }

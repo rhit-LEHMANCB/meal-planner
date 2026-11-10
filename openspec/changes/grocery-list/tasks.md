@@ -2,14 +2,14 @@
 
 ## 1. Schema and migration
 
-- [ ] 1.1 Edit `src/lib/server/db/schema.ts`:
+- [x] 1.1 Edit `src/lib/server/db/schema.ts`:
   - `grocery_lists`: unique index on `plan_id`.
   - `grocery_items`: add `item_key`, `is_extra` (not null, default false), `ticked_amount`; unique index on `(list_id, item_key)`.
   - New `grocery_aisle_choices` (`id`, `user_id`, `name_key`, `aisle`), unique on `(user_id, name_key)`.
 
   Verify `npm run check` passes.
-- [ ] 1.2 Run `npm run db:generate` and commit the new `drizzle/` files. Verify `npm run check:migrations` passes and the SQL has no drops, renames, type changes or `SET NOT NULL`.
-- [ ] 1.3 Apply the migration to the Neon `dev` branch locally so integration specs can run. Verify `drizzle-kit migrate` reports success.
+- [x] 1.2 Run `npm run db:generate` and commit the new `drizzle/` files. Verify `npm run check:migrations` passes and the SQL has no drops, renames, type changes or `SET NOT NULL`.
+- [x] 1.3 Apply the migration to the Neon `dev` branch locally so integration specs can run. Verify `drizzle-kit migrate` reports success.
 
 ## 2. Grocery domain logic (pure)
 

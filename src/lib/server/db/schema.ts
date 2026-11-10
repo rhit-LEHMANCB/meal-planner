@@ -157,27 +157,58 @@ export const plannedMeals = pgTable(
 	]
 );
 
-export const groceryLists = pgTable('grocery_lists', {
-	id: uuid('id').primaryKey().defaultRandom(),
-	planId: uuid('plan_id')
-		.notNull()
-		.references(() => mealPlans.id, { onDelete: 'cascade' })
-});
+/** One per plan week. Owned through `meal_plans.user_id`. */
+export const groceryLists = pgTable(
+	'grocery_lists',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		planId: uuid('plan_id')
+			.notNull()
+			.references(() => mealPlans.id, { onDelete: 'cascade' })
+	},
+	(t) => [uniqueIndex('grocery_lists_plan_unique').on(t.planId)]
+);
 
-export const groceryItems = pgTable('grocery_items', {
-	id: uuid('id').primaryKey().defaultRandom(),
-	listId: uuid('list_id')
-		.notNull()
-		.references(() => groceryLists.id, { onDelete: 'cascade' }),
-	foodId: uuid('food_id').references(() => foods.id),
-	name: text('name').notNull(),
-	quantity: numeric('quantity', { precision: 9, scale: 3 }),
-	unit: text('unit'),
-	aisle: text('aisle'),
-	checked: boolean('checked').notNull().default(false),
-	/** Meals that need this item, shown as "Turkey chili, Fish tacos". */
-	forMeals: text('for_meals').array().notNull().default([])
-});
+/**
+ * The list itself is rebuilt from the plan on every load; rows here are only user state:
+ * a tick of a derived item (`item_key` set, `ticked_amount` = its amounts when ticked) or an
+ * item the user added (`is_extra`).
+ */
+export const groceryItems = pgTable(
+	'grocery_items',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		listId: uuid('list_id')
+			.notNull()
+			.references(() => groceryLists.id, { onDelete: 'cascade' }),
+		foodId: uuid('food_id').references(() => foods.id),
+		name: text('name').notNull(),
+		quantity: numeric('quantity', { precision: 9, scale: 3 }),
+		unit: text('unit'),
+		aisle: text('aisle'),
+		checked: boolean('checked').notNull().default(false),
+		/** Meals that need this item, shown as "Turkey chili, Fish tacos". */
+		forMeals: text('for_meals').array().notNull().default([]),
+		/** Normalized name of the derived item this tick is for. Null for extra items. */
+		itemKey: text('item_key'),
+		isExtra: boolean('is_extra').notNull().default(false),
+		/** The derived item's amounts when ticked (`serializeAmounts`), to spot "more needed". */
+		tickedAmount: text('ticked_amount')
+	},
+	(t) => [uniqueIndex('grocery_items_list_key_unique').on(t.listId, t.itemKey)]
+);
+
+/** The aisle a user moved an item name to; applies on every week. */
+export const groceryAisleChoices = pgTable(
+	'grocery_aisle_choices',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		userId: text('user_id').notNull(),
+		nameKey: text('name_key').notNull(),
+		aisle: text('aisle').notNull()
+	},
+	(t) => [uniqueIndex('grocery_aisle_choices_user_name_unique').on(t.userId, t.nameKey)]
+);
 
 export const pantryItems = pgTable('pantry_items', {
 	id: uuid('id').primaryKey().defaultRandom(),
