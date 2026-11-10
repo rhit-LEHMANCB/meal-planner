@@ -1,7 +1,7 @@
 # Lifecycle: weekly-plan-leftovers
 
 - Branch: `weekly-plan-leftovers`
-- Stage: 7 Production PR open, waiting for Gate B (human merge)
+- Stage: **complete (archived automatically on 2026-11-10 after the production release `b73bada`)**
 - Review round: 3 of 3
 - QA cycle: 2 of 3
 - Started: 2026-10-23
@@ -219,3 +219,6 @@ Production-only risks:
 ## Halted
 
 (only if the run halted: stage, reason, evidence, next step for a human)
+
+## Archive
+Archived automatically on 2026-11-10 after the production release `b73bada` ([workflow run](https://github.com/rhit-LEHMANCB/meal-planner/actions/runs/42735171722)). That marks this lifecycle complete.
