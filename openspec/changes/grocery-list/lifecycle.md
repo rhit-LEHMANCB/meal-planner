@@ -1,9 +1,9 @@
 # Lifecycle: grocery-list
 
 - Branch: `grocery-list`
-- Stage: 5 Ship to develop
+- Stage: 7 Production PR
 - Review round: 2 of 3
-- QA cycle: 0 of 3
+- QA cycle: 1 of 3
 - Started: 2026-11-09
 
 ## Interview summary
@@ -97,17 +97,79 @@ Run 2026-11-09.
 
 ## Deferred findings
 
+- QA observation: invalid `?week=` values are not redirected on `/grocery` or `/plan` (spec wording says redirect).
+- QA observation: a tick outlives a deleted recipe or cook until the next tick on that week.
+- QA gap: food entries in a count unit and foods with an aisle are untested on the dev site.
 - Review round 1, minor: `grocery_aisle_choices` has no per-user cap; a user can store any number of name keys (affects only their own rows and page load).
 - Review round 2, nit: `page.server.spec.ts` asserts the exact `setTick` arguments, including `liveKeys`.
 - Review round 1, nit: the cook and food queries re-check `meal_plans.user_id` after the plan was looked up by user (harmless defence in depth).
 
 ## QA report
 
-(filled in stage 6; link to the QA evidence branch)
+- Deployed commit: `0079dcc` on `develop` (dev site: https://meal-planner-dev--lehman-meals.us-east5.hosted.app)
+- QA cycle: 1 of 3, by a fresh independent agent (Sonnet 5.5), 2026-11-09
+- Result: **PASS**, 0 failing scenarios (19 scenario tests + 5 regression tests). Test bugs in its own scripts were fixed inside the cycle (strict-mode locators, capitalized names, SvelteKit failure payloads arriving as HTTP 200, shared leftover picker data).
+- Evidence: unmerged branch `qa-evidence/grocery-list`; screenshots show the signed-in email masked. Specs: `tests/qa/grocery-list/` (weeks in 2031, `qa-` data, cleaned up).
+
+| Scenario | Result | Evidence |
+| --- | --- | --- |
+| Week from the address | pass | [week-from-the-address.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-week-from-the-address.png?raw=true) |
+| Not a Monday | pass | [not-a-monday.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-not-a-monday.png?raw=true) |
+| Signed out | pass | [signed-out.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-signed-out.png?raw=true) |
+| Scaled to servings cooked | pass | [scaled-to-servings-cooked.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-scaled-to-servings-cooked.png?raw=true) |
+| No amount | pass | [no-amount.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-no-amount.png?raw=true) |
+| Leftover in the week | pass | [leftover-in-the-week.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-leftover-in-the-week.png?raw=true) |
+| Leftover from last week's cook | pass | [leftover-from-last-weeks-cook.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-leftover-from-last-weeks-cook.png?raw=true) |
+| Snack foods (grams; see gaps) | pass | [snack-foods.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-snack-foods.png?raw=true) |
+| Same and different units | pass | [same-and-different-units.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-same-and-different-units.png?raw=true) |
+| Unit spellings match | pass | [unit-spellings-match.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-unit-spellings-match.png?raw=true) |
+| Different names stay apart | pass | [different-names-stay-apart.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-different-names-stay-apart.png?raw=true) |
+| Count rounds up | pass | [count-rounds-up.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-count-rounds-up.png?raw=true) |
+| Weight keeps decimals | pass | [weight-keeps-decimals.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-weight-keeps-decimals.png?raw=true) |
+| Guessed aisle | pass | [guessed-aisle.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-guessed-aisle.png?raw=true) |
+| Unknown name | pass | [unknown-name.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-unknown-name.png?raw=true) |
+| Remembered on other weeks | pass | [remembered-on-other-weeks.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-remembered-on-other-weeks.png?raw=true) |
+| Aisle choice applies to extra items | pass | [aisle-choice-applies-to-extra-items.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-aisle-choice-applies-to-extra-items.png?raw=true) |
+| Unknown aisle refused | pass | [unknown-aisle-refused.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-unknown-aisle-refused.png?raw=true) |
+| Tick and reload | pass | [tick-and-reload.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-tick-and-reload.png?raw=true) |
+| Repeated tick | pass | [repeated-tick.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-repeated-tick.png?raw=true) |
+| Ticking works without JavaScript | pass | [ticking-works-without-javascript.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-ticking-works-without-javascript.png?raw=true) |
+| Servings raised | pass | [servings-raised.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-servings-raised.png?raw=true) |
+| Servings lowered | pass | [servings-lowered.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-servings-lowered.png?raw=true) |
+| Add an extra item | pass | [add-an-extra-item.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-add-an-extra-item.png?raw=true) |
+| Blank text | pass | [blank-text.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-blank-text.png?raw=true) |
+| Delete an extra item | pass | [delete-an-extra-item.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-delete-an-extra-item.png?raw=true) |
+| Extra item limit (100) | pass | [extra-item-limit.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-extra-item-limit.png?raw=true) |
+| Empty week | pass | [empty-week.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-empty-week.png?raw=true) |
+| The list explains what it covers | pass | [the-list-explains-what-it-covers.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-the-list-explains-what-it-covers.png?raw=true) |
+| Other user's week | pass | [other-users-week.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-other-users-week.png?raw=true) |
+| Other user's extra item | pass | [other-users-extra-item.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-other-users-extra-item.png?raw=true) |
+| Phone layout and item menu (not in spec) | pass | [phone-layout.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/grocery-list-phone-layout.png?raw=true) |
+| Regression: /recipes, /plan, /leftovers, /grocery, /nutrition load with no console errors | pass | [regression-grocery.png](https://github.com/rhit-LEHMANCB/meal-planner/blob/qa-evidence/grocery-list/openspec/changes/grocery-list/qa/screenshots/regression-grocery.png?raw=true) |
+
+**Observations outside the specs**
+1. Low: invalid `?week=` values (`garbage`, `2026-02-30`, empty) are not redirected; they show this week, exactly like `/plan`. The spec says "redirect … the same way `/plan` does"; behaviour matches `/plan`, the wording does not. Follow-up: fix the wording or add the redirect to both pages.
+2. Low: names are shown with a capital first letter ("Qa paper towels"); the spec example writes "paper towels".
+3. Info: a tick outlives a deleted recipe or cook until the next tick on that week; if the same ingredient comes back that week and needs no more, it shows already ticked.
+4. Info: custom foods and aisle choices cannot be deleted from the UI, so QA leaves `qa-gl-apple`, empty 2031 plan rows and a "gochujang" aisle choice on the dev QA account.
+5. No console errors; no horizontal scroll at 390 px; the item menu is a bottom sheet on phones.
+
+**Not covered by automation**: a food in a count unit ("Apple, 1 each": custom foods only have grams), foods with an aisle (not settable in the UI), legacy unparsed ingredient rows, recipes with no servings, concurrent devices, real phones offline, screen readers.
+
 
 ## Verification checklist for the human
 
-(filled in stage 7)
+Ranked by risk. Test on production after merging unless noted.
+
+1. **Migration applied in production** (high). After the deploy, check the `migrate` run on the `production` push succeeded, then open `/grocery` and tick an item. A missing migration shows a 500 on tick.
+2. **Tick items in a shop on a phone** (high). On a real phone, open this week's list, tick about five items while moving, toggle airplane mode, tick another, restore signal and reload. Expect ticks saved and a failed tick showing an error, not a silent reset.
+3. **"More needed" after a real re-plan** (high). Tick several items, then raise a cook's servings, edit a recipe's ingredient amounts, add a second cook using an existing ingredient in another unit, and lower a cook. Expect only items needing more (or a new unit) to come back unticked with "More needed since you ticked it".
+4. **Real recipes with messy ingredient lines** (medium). Cook two or three real recipes (including older recipes saved before structured rows) and read the list: merged names, "as needed" for odd lines, counts rounded up.
+5. **Aisle guesses** (medium). With 30+ real items, check the guessed aisles, move a few and confirm other weeks and extra items follow.
+6. **Keyboard and screen reader** (medium). Tab to "⋯", open the menu, pick an aisle, close with Escape, tick with Space; check VoiceOver/NVDA announce the pressed state.
+7. **Two devices** (low). Same week on phone and laptop: tick on one, add an extra on the other, delete it on one and tick it on the other; expect "no longer on your list", not a crash.
+
+Production-only risks: no new secrets or environment variables; the migration only adds (unique indexes on empty-in-production tables `grocery_lists` and `grocery_items`, a new table).
 
 ## Halted
 
