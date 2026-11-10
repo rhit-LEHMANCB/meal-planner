@@ -1,7 +1,7 @@
 # Lifecycle: grocery-list
 
 - Branch: `grocery-list`
-- Stage: 2 Propose and preflight
+- Stage: 3 Implement (Gate A approved)
 - Review round: 0 of 3
 - QA cycle: 0 of 3
 - Started: 2026-11-09
@@ -70,8 +70,8 @@ Approved: yes (2026-11-09, summary and mockups confirmed by the user)
 
 ## Gate A
 
-Approved: no
-Accepted preflight gaps: none
+Approved: yes (2026-11-09, by the user in chat)
+Accepted preflight gaps: local Node 22 instead of 24 (CI `verify` on Node 24 stays the gate)
 
 ## Preflight
 
