@@ -120,11 +120,13 @@ const COUNT_UNITS = new Set<string | null>([
 	'package'
 ]);
 
-const formatOne = ({ unit, quantity }: Amount) => {
-	const text = COUNT_UNITS.has(unit)
-		? String(Math.max(1, Math.ceil(quantity - EPSILON)))
-		: formatAmount(quantity);
-	return unit ? `${text} ${unit}` : text;
+/** Count units are bought whole: the amount shown, ticked and compared is rounded up. */
+const shown = ({ unit, quantity }: Amount) =>
+	COUNT_UNITS.has(unit) ? Math.max(1, Math.ceil(quantity - EPSILON)) : quantity;
+
+const formatOne = (amount: Amount) => {
+	const text = COUNT_UNITS.has(amount.unit) ? String(shown(amount)) : formatAmount(amount.quantity);
+	return amount.unit ? `${text} ${amount.unit}` : text;
 };
 
 /** "2 cup + 200 g", "3", or "as needed" when there is no amount at all. */
@@ -136,7 +138,7 @@ const round3 = (n: number) => Math.round(n * 1000) / 1000;
 /** Canonical text of an item's amounts, stored when it is ticked: "cup=2;g=200;-=3;?". */
 export const serializeAmounts = (item: Pick<GroceryItem, 'amounts' | 'asNeeded'>): string => {
 	const parts = item.amounts
-		.map((a) => `${a.unit ?? '-'}=${round3(a.quantity)}`)
+		.map((a) => `${a.unit ?? '-'}=${round3(shown(a))}`)
 		.sort((a, b) => a.localeCompare(b));
 	if (item.asNeeded) parts.push('?');
 	return parts.join(';');
@@ -162,7 +164,7 @@ export const isCovered = (
 	if (current.asNeeded && !was.asNeeded) return false;
 	return current.amounts.every((a) => {
 		const had = was.units.get(a.unit ?? '-');
-		return had !== undefined && had + EPSILON >= round3(a.quantity);
+		return had !== undefined && had + EPSILON >= round3(shown(a));
 	});
 };
 

@@ -98,7 +98,7 @@
 		{/if}
 		<form
 			method="POST"
-			action="?/add"
+			action="?week={data.monday}&/add"
 			class="flex flex-[2_1_320px] flex-col gap-1.5"
 			use:enhance={() => {
 				adding = true;

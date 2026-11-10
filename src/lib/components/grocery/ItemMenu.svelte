@@ -57,7 +57,12 @@
 			>
 		</div>
 
-		<form method="POST" action="?/aisle" class="flex flex-col gap-3" use:enhance={closeAfter}>
+		<form
+			method="POST"
+			action="?week={week}&/aisle"
+			class="flex flex-col gap-3"
+			use:enhance={closeAfter}
+		>
 			<input type="hidden" name="week" value={week} />
 			<input type="hidden" name="key" value={item.key} />
 			<fieldset class="flex flex-col">
@@ -82,7 +87,7 @@
 		</form>
 
 		{#if item.extra}
-			<form method="POST" action="?/remove" use:enhance={closeAfter}>
+			<form method="POST" action="?week={week}&/remove" use:enhance={closeAfter}>
 				<input type="hidden" name="week" value={week} />
 				<input type="hidden" name="id" value={item.id} />
 				<button type="submit" class="btn btn-danger w-full" disabled={busy}>Delete item</button>

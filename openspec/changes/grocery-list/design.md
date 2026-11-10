@@ -72,6 +72,7 @@ buildGroceryList(sources: GrocerySource[]): GroceryItem[]
 ### Ticks and "more needed"
 
 - `serializeAmounts(item)`: canonical text, e.g. `cup=2;g=200` (count unit as `-`, "as needed" as `?`). Stored in `ticked_amount` when ticking.
+- Count units are serialized and compared as shown (rounded up), so an item never says "more needed" without a visible change.
 - `isCovered(ticked, current)`: true when every current unit is in `ticked` with at least that quantity (epsilon 1e-6), and "as needed" is covered by "as needed".
 - `applyTicks(items, ticks)` returns each item with `checked` (stored tick and covered) and `moreNeeded` (stored tick but not covered).
 - The server computes the snapshot itself when ticking: the `tick` action rebuilds the week, finds the key and stores its current amounts. An unknown key fails with "This item is no longer on the list".

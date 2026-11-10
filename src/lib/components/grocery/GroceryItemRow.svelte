@@ -24,7 +24,7 @@
 <li class="flex items-center gap-1 border-b border-[#e3e9df]" data-testid="grocery-item">
 	<form
 		method="POST"
-		action={item.extra ? '?/extraTick' : '?/tick'}
+		action="?week={week}&/{item.extra ? 'extraTick' : 'tick'}"
 		class="min-w-0 flex-1"
 		use:enhance={() => {
 			busy = true;

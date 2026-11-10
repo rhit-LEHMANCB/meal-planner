@@ -172,14 +172,16 @@ describe('ticks', () => {
 				)
 			)
 		).toBe('cup=2;g=200;?');
-		expect(serializeAmounts(item([{ unit: null, quantity: 1 / 3 }]))).toBe('-=0.333');
+		expect(serializeAmounts(item([{ unit: 'cup', quantity: 1 / 3 }]))).toBe('cup=0.333');
+		// Count units are stored as shown: rounded up.
+		expect(serializeAmounts(item([{ unit: null, quantity: 2.5 }]))).toBe('-=3');
 	});
 
 	it('is covered by an equal or larger tick', () => {
 		const ticked = serializeAmounts(item([{ unit: null, quantity: 3 }]));
 		expect(isCovered(ticked, item([{ unit: null, quantity: 3 }]))).toBe(true);
 		expect(isCovered(ticked, item([{ unit: null, quantity: 2 }]))).toBe(true);
-		expect(isCovered(ticked, item([{ unit: null, quantity: 1 / 3 + 2.667 }]))).toBe(true);
+		expect(isCovered(ticked, item([{ unit: null, quantity: 3.0000001 }]))).toBe(true);
 	});
 
 	it('needs more when a unit grows or a unit is new', () => {
@@ -194,6 +196,13 @@ describe('ticks', () => {
 				])
 			)
 		).toBe(false);
+	});
+
+	it('compares count units as shown, rounded up', () => {
+		const ticked = serializeAmounts(item([{ unit: null, quantity: 2.5 }]));
+		expect(isCovered(ticked, item([{ unit: null, quantity: 2.9 }]))).toBe(true);
+		expect(isCovered(ticked, item([{ unit: null, quantity: 3.1 }]))).toBe(false);
+		expect(isCovered('g=100', item([{ unit: 'g', quantity: 100.5 }]))).toBe(false);
 	});
 
 	it('treats "as needed" like a unit', () => {

@@ -13,11 +13,15 @@ import { isIsoDate, parseWeekParam, todayIso } from '$lib/domain/plan';
 import { requireUserId } from '$lib/server/auth';
 import { getGroceryStore } from '$lib/server/grocery';
 
-/** The week an action applies to, from the form's hidden `week` field (a Monday). */
-const weekOf = (data: FormData) => {
+/** The week an action applies to: the form's hidden `week` field, which must be a Monday. */
+const weekOf = (data: FormData): string | null => {
 	const week = data.get('week');
-	return parseWeekParam(typeof week === 'string' ? week : null, todayIso()).monday;
+	if (!isIsoDate(week)) return null;
+	const { monday, redirect } = parseWeekParam(week, todayIso());
+	return redirect ? null : monday;
 };
+
+const BAD_WEEK = 'This page is out of date. Refresh it and try again.';
 
 export const load = async ({ locals, url }) => {
 	const userId = requireUserId(locals);
@@ -47,6 +51,7 @@ export const actions = {
 		if (!form.ok) return fail(400, { action: 'tick', errors: form.errors });
 
 		const monday = weekOf(data);
+		if (!monday) return fail(400, { action: 'tick', errors: { form: BAD_WEEK } });
 		const store = getGroceryStore();
 		const items = buildGroceryList((await store.getWeek(userId, monday)).sources);
 		const item = items.find((i) => i.key === form.value.key);
@@ -72,7 +77,9 @@ export const actions = {
 		const form = parseExtraForm(data);
 		if (!form.ok) return fail(400, { action: 'add', errors: form.errors });
 
-		const result = await getGroceryStore().addExtra(userId, weekOf(data), form.value);
+		const monday = weekOf(data);
+		if (!monday) return fail(400, { action: 'add', errors: { form: BAD_WEEK } });
+		const result = await getGroceryStore().addExtra(userId, monday, form.value);
 		if (!result.ok) {
 			return fail(409, {
 				action: 'add',

@@ -30,7 +30,7 @@ describe('GroceryItemRow', () => {
 		await expect.element(tick).toHaveTextContent('Turkey chili, Roast chicken');
 		await expect.element(tick).toHaveTextContent('3');
 		const form = formOf(tick.element());
-		expect(form.getAttribute('action')).toBe('?/tick');
+		expect(form.getAttribute('action')).toBe('?week=2026-11-09&/tick');
 		expect(hidden(form, 'key')).toBe('onion');
 		expect(hidden(form, 'checked')).toBe('true');
 		expect(hidden(form, 'week')).toBe(WEEK);
@@ -70,7 +70,7 @@ describe('GroceryItemRow', () => {
 		});
 		const screen = render(GroceryItemRow, { props: { item: extra, week: WEEK } });
 		const form = formOf(screen.getByRole('button', { name: /^Paper towels/ }).element());
-		expect(form.getAttribute('action')).toBe('?/extraTick');
+		expect(form.getAttribute('action')).toBe('?week=2026-11-09&/extraTick');
 		expect(hidden(form, 'id')).toBe(extra.id);
 
 		await screen.getByRole('button', { name: 'More for Paper towels' }).click();
@@ -91,7 +91,7 @@ describe('GroceryItemRow', () => {
 			.element(screen.getByRole('button', { name: 'Delete item' }))
 			.not.toBeInTheDocument();
 		const form = formOf(screen.getByRole('button', { name: 'Move' }).element());
-		expect(form.getAttribute('action')).toBe('?/aisle');
+		expect(form.getAttribute('action')).toBe('?week=2026-11-09&/aisle');
 		expect(hidden(form, 'key')).toBe('onion');
 	});
 });

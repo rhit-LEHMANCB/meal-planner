@@ -2,7 +2,7 @@
 
 - Branch: `grocery-list`
 - Stage: 4 Review
-- Review round: 0 of 3
+- Review round: 1 of 3
 - QA cycle: 0 of 3
 - Started: 2026-11-09
 
@@ -92,11 +92,12 @@ Run 2026-11-09.
 
 ## Review rounds
 
-(none yet; one line per round: blockers, majors, fixed, rejected with reason)
+- Round 1 (2026-11-09): 0 blockers, 1 major, 4 minors, 1 nit. Fixed: the major (route-level spec `page.server.spec.ts` for the redirect, sign-in, tick 404, untick of a gone key, bad week, add 409 and field error, extra-item 404s, aisle 400); minor 2 (actions refuse a missing or non-Monday `week`); minor 3 (forms post to `?week=…&/action`, so a no-JS submit reloads the same week); minor 4 (count units ticked and compared as shown, rounded up).
 
 ## Deferred findings
 
-(minors, nits and known gaps to turn into issues at wrap-up)
+- Review round 1, minor: `grocery_aisle_choices` has no per-user cap; a user can store any number of name keys (affects only their own rows and page load).
+- Review round 1, nit: the cook and food queries re-check `meal_plans.user_id` after the plan was looked up by user (harmless defence in depth).
 
 ## QA report
 
