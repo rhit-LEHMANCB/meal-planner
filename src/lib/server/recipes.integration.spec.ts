@@ -4,7 +4,8 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
 import { parseRecipeForm, recipeToFormValues } from '$lib/domain/recipe-form';
 import { createDb } from './db';
-import { recipeIngredients, recipes } from './db/schema';
+import { leftoverBatches, mealPlans, plannedMeals, recipeIngredients, recipes } from './db/schema';
+import { makePlanStore } from './plan';
 import { makeRecipeStore } from './recipes';
 
 try {
@@ -47,6 +48,13 @@ describe.skipIf(!url)('recipe store (Neon dev branch)', () => {
 	const store = makeRecipeStore(db);
 
 	afterAll(async () => {
+		const plans = db
+			.select({ id: mealPlans.id })
+			.from(mealPlans)
+			.where(inArray(mealPlans.userId, [alice, bob]));
+		await db.delete(plannedMeals).where(inArray(plannedMeals.planId, plans));
+		await db.delete(leftoverBatches).where(inArray(leftoverBatches.userId, [alice, bob]));
+		await db.delete(mealPlans).where(inArray(mealPlans.userId, [alice, bob]));
 		await db.delete(recipes).where(inArray(recipes.userId, [alice, bob]));
 	});
 
@@ -221,5 +229,41 @@ describe.skipIf(!url)('recipe store (Neon dev branch)', () => {
 			.from(recipeIngredients)
 			.where(eq(recipeIngredients.recipeId, id));
 		expect(leftovers).toEqual([]);
+	});
+
+	it('deletes a planned recipe with its planned meals and batches, and nothing of anyone else', async () => {
+		const plan = makePlanStore(db);
+		const id = await store.create(alice, input());
+		const other = await store.create(bob, input());
+		const cook = await plan.addCook(alice, {
+			date: '2030-02-04',
+			slot: 'dinner',
+			recipeId: id,
+			cooked: 4,
+			eaten: 2
+		});
+		if (!cook.ok) throw new Error('cook failed');
+		const batchId = (await plan.getWeek(alice, '2030-02-04'))[0].batchId as string;
+		await plan.addLeftover(alice, { date: '2030-02-05', slot: 'lunch', batchId, servings: 1 });
+		const bobCook = await plan.addCook(bob, {
+			date: '2030-02-04',
+			slot: 'dinner',
+			recipeId: other,
+			cooked: 2,
+			eaten: 1
+		});
+
+		expect((await store.get(alice, id))?.plannedCount).toBe(2);
+		expect(await store.remove(alice, id)).toBe(true);
+		expect(await store.get(alice, id)).toBeNull();
+		expect(await plan.getWeek(alice, '2030-02-04')).toEqual([]);
+		const batches = await db
+			.select({ id: leftoverBatches.id })
+			.from(leftoverBatches)
+			.where(eq(leftoverBatches.recipeId, id));
+		expect(batches).toEqual([]);
+		expect((await plan.getWeek(bob, '2030-02-04')).map((e) => e.id)).toEqual([
+			bobCook.ok ? bobCook.value : ''
+		]);
 	});
 });

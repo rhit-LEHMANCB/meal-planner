@@ -1,4 +1,5 @@
 import {
+	type AnyPgColumn,
 	boolean,
 	date,
 	index,
@@ -8,6 +9,7 @@ import {
 	pgTable,
 	text,
 	timestamp,
+	uniqueIndex,
 	uuid
 } from 'drizzle-orm/pg-core';
 
@@ -30,7 +32,7 @@ export const foods = pgTable(
 		fatPer100g: numeric('fat_per_100g', { precision: 7, scale: 2 }).notNull(),
 		aisle: text('aisle')
 	},
-	(t) => [index('foods_name_idx').on(t.name)]
+	(t) => [index('foods_name_idx').on(t.name), index('foods_user_idx').on(t.userId)]
 );
 
 /** Unit conversions per food: 1 cup of flour = 120 g, 1 each onion = 110 g. */
@@ -94,21 +96,37 @@ export const mealPlans = pgTable(
 		userId: text('user_id').notNull(),
 		weekStart: date('week_start').notNull()
 	},
-	(t) => [index('meal_plans_user_week_idx').on(t.userId, t.weekStart)]
+	(t) => [
+		index('meal_plans_user_week_idx').on(t.userId, t.weekStart),
+		uniqueIndex('meal_plans_user_week_unique').on(t.userId, t.weekStart)
+	]
 );
 
 /** A cooked batch that later meals can draw leftovers from. */
-export const leftoverBatches = pgTable('leftover_batches', {
-	id: uuid('id').primaryKey().defaultRandom(),
-	userId: text('user_id').notNull(),
-	recipeId: uuid('recipe_id')
-		.notNull()
-		.references(() => recipes.id),
-	cookedOn: date('cooked_on').notNull(),
-	servingsCooked: integer('servings_cooked').notNull(),
-	servingsRemaining: integer('servings_remaining').notNull(),
-	eatBy: date('eat_by')
-});
+export const leftoverBatches = pgTable(
+	'leftover_batches',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		userId: text('user_id').notNull(),
+		recipeId: uuid('recipe_id')
+			.notNull()
+			.references(() => recipes.id),
+		cookedOn: date('cooked_on').notNull(),
+		servingsCooked: integer('servings_cooked').notNull(),
+		/**
+		 * Free servings: spare (cooked minus eaten at the cook) minus servings drawn by planned
+		 * leftovers. Only ever changed by conditional single-statement updates, so it never goes below 0.
+		 */
+		servingsRemaining: integer('servings_remaining').notNull(),
+		eatBy: date('eat_by'),
+		/** The planned cook that made this batch. */
+		cookMealId: uuid('cook_meal_id')
+			.unique()
+			.references((): AnyPgColumn => plannedMeals.id, { onDelete: 'set null' }),
+		thrownOutAt: timestamp('thrown_out_at', { withTimezone: true })
+	},
+	(t) => [index('leftover_batches_user_idx').on(t.userId)]
+);
 
 export const plannedMeals = pgTable(
 	'planned_meals',
@@ -119,15 +137,24 @@ export const plannedMeals = pgTable(
 			.references(() => mealPlans.id, { onDelete: 'cascade' }),
 		date: date('date').notNull(),
 		slot: mealSlot('slot').notNull(),
-		recipeId: uuid('recipe_id')
-			.notNull()
-			.references(() => recipes.id),
+		/** Set for cooks and leftovers (a leftover carries its batch's recipe). Null for foods. */
+		recipeId: uuid('recipe_id').references(() => recipes.id),
+		/** Cook: servings eaten at this meal. Leftover: servings drawn from the batch. */
 		servings: integer('servings').notNull().default(1),
 		/** Leftover meals draw from a batch and add nothing to the grocery list. */
 		isLeftover: boolean('is_leftover').notNull().default(false),
-		leftoverBatchId: uuid('leftover_batch_id').references(() => leftoverBatches.id)
+		leftoverBatchId: uuid('leftover_batch_id').references(() => leftoverBatches.id),
+		/** Food entries: the food and its amount in `unit` ('g' or one of the food's units). */
+		foodId: uuid('food_id').references(() => foods.id),
+		quantity: numeric('quantity', { precision: 9, scale: 3 }),
+		unit: text('unit'),
+		/** Order within the slot, in the order entries were added. */
+		position: integer('position').notNull().default(0)
 	},
-	(t) => [index('planned_meals_plan_idx').on(t.planId)]
+	(t) => [
+		index('planned_meals_plan_idx').on(t.planId),
+		index('planned_meals_batch_idx').on(t.leftoverBatchId)
+	]
 );
 
 export const groceryLists = pgTable('grocery_lists', {

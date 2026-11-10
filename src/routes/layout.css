@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 
-/* Palette from the design mockups: herb green, tomato accent, warm leftover amber. */
+/* Palette from the design mockups: herb green, tomato accent, warm leftover amber, slate-blue foods. */
 @theme {
 	--font-display: 'Bricolage Grotesque', sans-serif;
 	--font-sans: 'DM Sans', system-ui, sans-serif;
@@ -17,6 +17,10 @@
 	--color-leftover: #b7791f;
 	--color-leftover-tint: #fbefd9;
 	--color-leftover-ink: #3d2a08;
+	--color-food-tint: #eef0f7;
+	--color-food-edge: #c3c8db;
+	--color-food-ink: #232a45;
+	--color-food-muted: #464e6b;
 	--color-danger: #b23a20;
 	--color-danger-ink: #7a2412;
 	--color-danger-tint: #fbe5e0;
