@@ -51,7 +51,7 @@ Mockups: https://claude.ai/artifact/LZ2eJMT726E4PtF5XzNMd5 (weekly plan, import 
   - a tick is a `grocery_items` row with `item_key` and `ticked_amount` (the amounts when ticked, computed on the server). An item that needs more than its tick covers shows unticked with "More needed since you ticked it".
   - extra items are `grocery_items` rows with `is_extra` (max 100 per week, checked in the insert statement).
   - `grocery_aisle_choices` remembers a user's aisle per name key across weeks.
-- Grocery forms post to `?week=<Monday>&/name` (a bare `?/name` drops the week, so a no-JS submit would reload the wrong week) and also send a hidden `week` field, which the actions require to be a Monday.
+- Grocery forms post to `?week=<Monday>&/name` (a bare `?/name` drops the week, so a no-JS submit would reload the wrong week) and also send a hidden `week` field; `tick` and `add`, the actions that write to a week, refuse it unless it is a Monday.
 - `pantry_items`, `grocery_items.food_id`, `aisle` and `for_meals` are unused for now.
 
 ## Recipe import

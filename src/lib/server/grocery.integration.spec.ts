@@ -164,6 +164,10 @@ describe.skipIf(!url)('grocery store (Neon dev branch)', () => {
 		expect(await list(bob, MON)).toEqual([]);
 		await grocery.setAisle(alice, 'onion', 'Frozen');
 		expect((await grocery.getWeek(bob, MON)).choices.size).toBe(0);
+		const added = await grocery.addExtra(alice, MON, { name: 'milk', quantity: null, unit: null });
+		expect(added.ok).toBe(true);
+		expect((await grocery.getWeek(bob, MON)).extras).toEqual([]);
+		if (added.ok) await grocery.removeExtra(alice, added.value);
 	});
 
 	it('never reads another user’s recipe, even if a plan row points at it', async () => {

@@ -14,8 +14,9 @@
 
 	let busy = $state(false);
 
+	/** A DOM id unique per item: the key's code points, so "half and half" and "half-and-half" differ. */
 	const menuId = $derived(
-		`item-menu-${item.extra ? 'x' : 'k'}-${item.id.replace(/[^a-z0-9]+/gi, '-')}`
+		`item-menu-${item.extra ? 'x' : 'k'}-${[...item.id].map((c) => c.codePointAt(0)?.toString(36)).join('_')}`
 	);
 	const nameClass = $derived(item.checked ? 'text-muted line-through' : 'text-ink');
 	const amountClass = $derived(item.checked ? 'text-muted' : 'text-ink');

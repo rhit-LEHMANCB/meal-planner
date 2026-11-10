@@ -135,10 +135,13 @@ export const formatAmounts = (item: Pick<GroceryItem, 'amounts'>): string =>
 
 const round3 = (n: number) => Math.round(n * 1000) / 1000;
 
+/** A unit as it appears in a tick snapshot: free-text units lose the separators `;`, `=` and `?`. */
+const tokenOf = (unit: string | null) => (unit === null ? '-' : unit.replace(/[;=?]/g, ' ') || '-');
+
 /** Canonical text of an item's amounts, stored when it is ticked: "cup=2;g=200;-=3;?". */
 export const serializeAmounts = (item: Pick<GroceryItem, 'amounts' | 'asNeeded'>): string => {
 	const parts = item.amounts
-		.map((a) => `${a.unit ?? '-'}=${round3(shown(a))}`)
+		.map((a) => `${tokenOf(a.unit)}=${round3(shown(a))}`)
 		.sort((a, b) => a.localeCompare(b));
 	if (item.asNeeded) parts.push('?');
 	return parts.join(';');
@@ -163,7 +166,7 @@ export const isCovered = (
 	const was = parseAmounts(ticked);
 	if (current.asNeeded && !was.asNeeded) return false;
 	return current.amounts.every((a) => {
-		const had = was.units.get(a.unit ?? '-');
+		const had = was.units.get(tokenOf(a.unit));
 		return had !== undefined && had + EPSILON >= round3(shown(a));
 	});
 };

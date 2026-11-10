@@ -1,8 +1,8 @@
 # Lifecycle: grocery-list
 
 - Branch: `grocery-list`
-- Stage: 4 Review
-- Review round: 1 of 3
+- Stage: 5 Ship to develop
+- Review round: 2 of 3
 - QA cycle: 0 of 3
 - Started: 2026-11-09
 
@@ -92,11 +92,13 @@ Run 2026-11-09.
 
 ## Review rounds
 
-- Round 1 (2026-11-09): 0 blockers, 1 major, 4 minors, 1 nit. Fixed: the major (route-level spec `page.server.spec.ts` for the redirect, sign-in, tick 404, untick of a gone key, bad week, add 409 and field error, extra-item 404s, aisle 400); minor 2 (actions refuse a missing or non-Monday `week`); minor 3 (forms post to `?week=…&/action`, so a no-JS submit reloads the same week); minor 4 (count units ticked and compared as shown, rounded up).
+- Round 1 (2026-11-09): 0 blockers, 1 major, 4 minors, 1 nit. Fixed: the major (route-level spec `page.server.spec.ts` for the redirect, sign-in, tick 404, untick of a gone key, bad week, add 409 and field error, extra-item 404s, aisle 400); minor 2 (`tick` and `add` refuse a missing or non-Monday `week`; the other actions are owner-scoped by item and need no week); minor 3 (forms post to `?week=…&/action`, so a no-JS submit reloads the same week); minor 4 (count units ticked and compared as shown, rounded up).
+- Round 2 (2026-11-09): 0 blockers, 0 majors, 4 minors, 2 nits. Review loop exits. Fixed anyway: docs said every action checks the week (now say `tick` and `add`); popover ids could collide for keys like "half and half" / "half-and-half" (now encoded per code point); a `;` in a free-text unit broke tick snapshots (separators stripped); added the extras check to the privacy integration test. Deferred: aisle-choice cap (repeat of round 1), `setTick` argument-shape assertions (nit).
 
 ## Deferred findings
 
 - Review round 1, minor: `grocery_aisle_choices` has no per-user cap; a user can store any number of name keys (affects only their own rows and page load).
+- Review round 2, nit: `page.server.spec.ts` asserts the exact `setTick` arguments, including `liveKeys`.
 - Review round 1, nit: the cook and food queries re-check `meal_plans.user_id` after the plan was looked up by user (harmless defence in depth).
 
 ## QA report

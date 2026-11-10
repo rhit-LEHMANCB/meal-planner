@@ -198,6 +198,11 @@ describe('ticks', () => {
 		).toBe(false);
 	});
 
+	it('survives separators in free-text units', () => {
+		const odd = item([{ unit: 'can; 14 oz=big?', quantity: 1 }]);
+		expect(isCovered(serializeAmounts(odd), odd)).toBe(true);
+	});
+
 	it('compares count units as shown, rounded up', () => {
 		const ticked = serializeAmounts(item([{ unit: null, quantity: 2.5 }]));
 		expect(isCovered(ticked, item([{ unit: null, quantity: 2.9 }]))).toBe(true);
