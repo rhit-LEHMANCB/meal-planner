@@ -20,9 +20,9 @@
 
 ## 3. Grocery store
 
-- [ ] 3.1 Add `src/lib/server/grocery.ts` `makeGroceryStore(db)` / `getGroceryStore()` with `getWeek`. Verify `grocery.integration.spec.ts` on the dev branch: cooks scaled by servings cooked, food entries, a week of only leftovers gives no sources, another user's week is empty, a recipe of another user is never read.
-- [ ] 3.2 Add `setTick` (idempotent upserts of `meal_plans`, `grocery_lists` and the item; delete on untick). Verify the integration spec: tick twice gives one row, untick removes it, ticks are per user.
-- [ ] 3.3 Add `addExtra` (100 per week cap in one statement), `setExtraChecked`, `removeExtra` and `setAisle`. Verify the integration spec: cap, another user's item id is not found and unchanged, aisle choice upsert per user.
+- [x] 3.1 Add `src/lib/server/grocery.ts` `makeGroceryStore(db)` / `getGroceryStore()` with `getWeek`. Verify `grocery.integration.spec.ts` on the dev branch: cooks scaled by servings cooked, food entries, a week of only leftovers gives no sources, another user's week is empty, a recipe of another user is never read.
+- [x] 3.2 Add `setTick` (idempotent upserts of `meal_plans`, `grocery_lists` and the item; delete on untick). Verify the integration spec: tick twice gives one row, untick removes it, ticks are per user.
+- [x] 3.3 Add `addExtra` (100 per week cap in one statement), `setExtraChecked`, `removeExtra` and `setAisle`. Verify the integration spec: cap, another user's item id is not found and unchanged, aisle choice upsert per user.
 
 ## 4. Grocery page
 
