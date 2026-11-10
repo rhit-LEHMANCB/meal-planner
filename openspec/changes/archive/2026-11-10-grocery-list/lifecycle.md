@@ -1,7 +1,7 @@
 # Lifecycle: grocery-list
 
 - Branch: `grocery-list`
-- Stage: 7 Production PR
+- Stage: **complete (archived automatically on 2026-11-10 after the production release `4dd7d5b`)**
 - Review round: 2 of 3
 - QA cycle: 1 of 3
 - Started: 2026-11-09
@@ -174,3 +174,6 @@ Production-only risks: no new secrets or environment variables; the migration on
 ## Halted
 
 (only if the run halted: stage, reason, evidence, next step for a human)
+
+## Archive
+Archived automatically on 2026-11-10 after the production release `4dd7d5b` ([workflow run](https://github.com/rhit-LEHMANCB/meal-planner/actions/runs/42755334528)). That marks this lifecycle complete.
