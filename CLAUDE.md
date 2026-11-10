@@ -43,6 +43,17 @@ Mockups: https://claude.ai/artifact/LZ2eJMT726E4PtF5XzNMd5 (weekly plan, import 
 - Recipe delete (`RecipeStore.remove`) is the one place outside the plan store that writes plan tables: it removes the recipe's planned meals and batches in the same batch.
 - Food search is `GET /plan/foods?q=`, deliberately not under `/api/*`, which is public.
 
+## Grocery list
+
+- `/grocery?week=<Monday>` is rebuilt from the plan on every load and never stored. Sources: each cook's ingredients scaled by the batch's `servings_cooked / recipes.servings`, and each food entry in its planned amount and unit. Leftovers are never loaded, so they add nothing.
+- Items merge by `nameKey` (lowercase, collapsed spaces; no plural matching) and amounts add per normalized unit; different units show side by side. Merging, rounding (count units round up), ticks and aisles are pure: `grocery.ts`, `grocery-view.ts`, `aisles.ts` in `src/lib/domain`. Ingredients are not linked to foods yet, so nothing here uses grams or `foods` macros.
+- Stored state only, through `getGroceryStore()` (`src/lib/server/grocery.ts`, owner id on every method; lists are owned through `grocery_lists.plan_id → meal_plans.user_id`):
+  - a tick is a `grocery_items` row with `item_key` and `ticked_amount` (the amounts when ticked, computed on the server). An item that needs more than its tick covers shows unticked with "More needed since you ticked it".
+  - extra items are `grocery_items` rows with `is_extra` (max 100 per week, checked in the insert statement).
+  - `grocery_aisle_choices` remembers a user's aisle per name key across weeks.
+- Grocery forms send the week as a hidden `week` field, because `action="?/name"` drops the page's query string.
+- `pantry_items`, `grocery_items.food_id`, `aisle` and `for_meals` are unused for now.
+
 ## Recipe import
 
 - `/recipes/import` imports from a link, pasted text or a photo and ends on a review form; nothing is saved until "Save to recipe shelf" (the `save` action, which validates like any recipe form). The draft is not stored anywhere.

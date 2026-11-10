@@ -1,7 +1,7 @@
 # Lifecycle: grocery-list
 
 - Branch: `grocery-list`
-- Stage: 3 Implement (Gate A approved)
+- Stage: 4 Review
 - Review round: 0 of 3
 - QA cycle: 0 of 3
 - Started: 2026-11-09

@@ -26,11 +26,11 @@
 
 ## 4. Grocery page
 
-- [ ] 4.1 `src/routes/grocery/+page.server.ts`: load (week redirect, store, builder, ticks, grouping, counts) and actions `tick`, `add`, `extraTick`, `remove`, `aisle`, using `requireUserId` and `getGroceryStore()` only. Verify with `npm run check` and a route-level unit spec of the load's pure assembly if it is split out.
-- [ ] 4.2 `GroceryItemRow.svelte` (tick button with `aria-pressed`, name, meals, amount, "More needed since you ticked it", "Added by you") and `ItemMenu.svelte` (popover: aisle radios + Move, Delete for extras). Verify vitest-browser-svelte specs for ticked/unticked/more-needed rendering, labels, and the menu's Delete only on extra items.
-- [ ] 4.3 `+page.svelte`: header with week controls, progress, covers summary, add form with error, aisle sections, empty state linking to `/plan?week=`. Matches the `GroceryPhone` and `GroceryDesktop` mockups; precompute display values with `$derived`. Verify a component spec for the empty state and progress text, and `npm run lint`.
+- [x] 4.1 `src/routes/grocery/+page.server.ts`: load (week redirect, store, builder, ticks, grouping, counts) and actions `tick`, `add`, `extraTick`, `remove`, `aisle`, using `requireUserId` and `getGroceryStore()` only. Verify with `npm run check` and a route-level unit spec of the load's pure assembly if it is split out.
+- [x] 4.2 `GroceryItemRow.svelte` (tick button with `aria-pressed`, name, meals, amount, "More needed since you ticked it", "Added by you") and `ItemMenu.svelte` (popover: aisle radios + Move, Delete for extras). Verify vitest-browser-svelte specs for ticked/unticked/more-needed rendering, labels, and the menu's Delete only on extra items.
+- [x] 4.3 `+page.svelte`: header with week controls, progress, covers summary, add form with error, aisle sections, empty state linking to `/plan?week=`. Matches the `GroceryPhone` and `GroceryDesktop` mockups; precompute display values with `$derived`. Verify a component spec for the empty state and progress text, and `npm run lint`.
 
 ## 5. Docs and checks
 
-- [ ] 5.1 Add a "Grocery list" section to `CLAUDE.md` (live list, stored ticks, keys, store, leftovers never add). Verify it matches the code.
-- [ ] 5.2 Run `npm run lint`, `npm run check`, `npm test` (with `TEST_DATABASE_URL` on dev), `npm run build` and `npm run check:server`. Verify all pass.
+- [x] 5.1 Add a "Grocery list" section to `CLAUDE.md` (live list, stored ticks, keys, store, leftovers never add). Verify it matches the code.
+- [x] 5.2 Run `npm run lint`, `npm run check`, `npm test` (with `TEST_DATABASE_URL` on dev), `npm run build` and `npm run check:server`. Verify all pass.
