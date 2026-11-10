@@ -13,10 +13,10 @@
 
 ## 2. Grocery domain logic (pure)
 
-- [ ] 2.1 Add `src/lib/domain/aisles.ts`: `AISLES`, `guessAisle`, `aisleFor`, `groupByAisle`. Verify `aisles.spec.ts` covers multi-word keywords winning ("black pepper" vs "bell pepper"), whole-word matching, unknown → Other, remembered choice over food aisle over guess, aisle order and empty aisles dropped.
-- [ ] 2.2 Replace `buildGroceryList` in `src/lib/domain/grocery.ts` with the name-based builder (`nameKey`, unit normalization, scaling, "as needed", meals once each, legacy lines through `parseIngredientLine`) and `formatAmounts` (count units round up). Rewrite `grocery.spec.ts` to cover the spec's merge, scale, count rounding, different-names, null-scale and food-source scenarios.
-- [ ] 2.3 Add `serializeAmounts`, `isCovered` and `applyTicks`. Verify specs for more in a unit, a new unit, less, equal, and "as needed".
-- [ ] 2.4 Add `src/lib/domain/grocery-form.ts` (zod: tick key and checked, extra text 1–200 chars, item id uuid, aisle in `AISLES`) with field errors. Verify `grocery-form.spec.ts`.
+- [x] 2.1 Add `src/lib/domain/aisles.ts`: `AISLES`, `guessAisle`, `aisleFor`, `groupByAisle`. Verify `aisles.spec.ts` covers multi-word keywords winning ("black pepper" vs "bell pepper"), whole-word matching, unknown → Other, remembered choice over food aisle over guess, aisle order and empty aisles dropped.
+- [x] 2.2 Replace `buildGroceryList` in `src/lib/domain/grocery.ts` with the name-based builder (`nameKey`, unit normalization, scaling, "as needed", meals once each, legacy lines through `parseIngredientLine`) and `formatAmounts` (count units round up). Rewrite `grocery.spec.ts` to cover the spec's merge, scale, count rounding, different-names, null-scale and food-source scenarios.
+- [x] 2.3 Add `serializeAmounts`, `isCovered` and `applyTicks`. Verify specs for more in a unit, a new unit, less, equal, and "as needed".
+- [x] 2.4 Add `src/lib/domain/grocery-form.ts` (zod: tick key and checked, extra text 1–200 chars, item id uuid, aisle in `AISLES`) with field errors. Verify `grocery-form.spec.ts`.
 
 ## 3. Grocery store
 
