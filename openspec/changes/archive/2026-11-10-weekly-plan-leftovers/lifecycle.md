@@ -222,3 +222,20 @@ Production-only risks:
 
 ## Archive
 Archived automatically on 2026-11-10 after the production release `b73bada` ([workflow run](https://github.com/rhit-LEHMANCB/meal-planner/actions/runs/42735171722)). That marks this lifecycle complete.
+
+## Outcome (wrap-up, 2026-11-10)
+
+- Production release `b73bada` via PR https://github.com/rhit-LEHMANCB/meal-planner/pull/26:
+  - `App Hosting - Rollout (…/meal-planner)` succeeded
+  - the production `migrate` run succeeded
+  - the archive PR https://github.com/rhit-LEHMANCB/meal-planner/pull/27 merged automatically
+- Human verification checklist: no results were reported back to the lifecycle. The human merged PR #26 after review.
+- Issues filed for deferred findings and QA observations:
+  - #28: races when removing a cook and ordering a slot
+  - #29: old batches with a far-future leftover can drop out of the fridge
+  - #30: route-level tests, and integration specs in CI
+  - #31: server uses UTC for "today"
+  - #32: no way to edit or delete a custom food
+  - #33: one unreproduced 60 s hang in create-and-add
+  - #34: fridge panel shows weekdays without dates
+- The QA evidence branch `qa-evidence/weekly-plan-leftovers` was deleted. The 36 leftover `qa-` custom foods on the Neon `dev` branch were deleted after QA.
