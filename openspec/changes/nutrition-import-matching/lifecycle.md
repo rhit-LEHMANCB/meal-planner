@@ -3,9 +3,9 @@
 (Renamed from `import-food-matching` at Gate A so the archive workflow, which works alphabetically, archives `nutrition` first: this change modifies a `recipes` requirement that `nutrition` adds.)
 
 - Branch: `feature/import-food-matching`
-- Stage: 5 Ship to develop
+- Stage: 7 Production PR (Gate B), combined with `nutrition` in PR #47
 - Review round: 1 of 3
-- QA cycle: 0 of 3
+- QA cycle: 1 of 3
 - Started: 2026-11-13
 
 Request (user, 2026-11-13): "make it so that the import feature uses AI to attempt to match ingredients and convert best guess conversions". Builds on the `nutrition` change (food links, grams on rows), which is at Gate B in PR #47 and already on `develop`.
@@ -98,13 +98,48 @@ Stage 3 done 2026-11-13: all tasks ticked. Migration 0008 applied to Neon `dev`.
 - The 10 s spacing is shared by imports and Match with AI, so pressing Match with AI right after an import waits.
 - `gramsSource` is client-posted, so a user can mislabel their own rows (accepted in design).
 
+## Ship
+
+PR https://github.com/rhit-LEHMANCB/meal-planner/pull/50 into `develop`: `verify` passed first try, merged 2026-11-13 (5b86080). Dev rollout and the migrate workflow succeeded; `/api/health` ok.
+
 ## QA report
 
-(filled in stage 6; link to the QA evidence branch)
+QA cycle 1 of 3, 2026-11-13T04:43Z, independent Sonnet QA agent, deployed commit `5b86080`. **Result: PASS**, 0 failing scenarios (3 test bugs in its own spec fixed).
+
+- AI spent: 4 of 8 AI imports, 7 of 12 matching runs.
+- Evidence: branch `qa-evidence/nutrition-import-matching` (commit 926471b, not for merging): [14 screenshots](https://github.com/rhit-LEHMANCB/meal-planner/tree/qa-evidence/nutrition-import-matching/openspec/changes/nutrition-import-matching/qa/screenshots) and the specs in `tests/qa/nutrition-import-matching/`.
+- Covered:
+  - matched rows and "AI match" markers;
+  - a structured-data link matched without using an AI import;
+  - no candidates;
+  - estimates for an unconvertible amount and for a row with no amount;
+  - a convertible amount keeping its conversion;
+  - editing an estimate makes it the user's;
+  - the preview follows edits and asks for servings;
+  - hidden instructions and stated calories are ignored;
+  - a photo import is matched;
+  - the recipe page notes estimated weights;
+  - the estimate is kept through a save;
+  - Match with AI fills only open rows, leaves cleared rows cleared, and saves nothing until Save;
+  - a regression pass over the top-level pages.
+- Not driven, by design: the 50-run daily cap, AI failure and timeout notices, an out-of-range estimate, a food outside the candidates, the 100-row limit, the 10 s refusal. All are covered by unit specs.
+- Observations:
+  - Candidate search misses plain foods for some names. "whole milk" returns yogurts and cheeses; "kosher salt", "ground coriander", "medium ripe avocados" and long descriptive names go unmatched.
+  - "200 g spaghetti" matched "Spaghetti, spinach, dry".
+  - The estimates were plausible; a bunch of cilantro at 60 g is a little high.
+  - The "AI match" marker is not persisted after save, only the weight marker. This is per the spec.
 
 ## Verification checklist for the human
 
-(filled in stage 7)
+Ships together with `nutrition` in PR #47 (see that change's checklist too).
+
+1. **Production migration 0008 (high, production only).** After the merge, the production `Run database migrations` workflow must succeed (0005 to 0008). No new secrets: matching uses the existing `ANTHROPIC_API_KEY`.
+2. **Real recipe import (high).** Import a real recipe with 10 or more ingredients from a live site (a bunch, a clove, "to taste", a brand name). Check each AI match and estimate, and compare the preview kcal with the site's figure.
+3. **Plain-food candidate gaps (medium-high).** Import "1 cup whole milk", "kosher salt", "ground coriander" and "2 avocados". Note which rows stay unlinked, and try "Other food".
+4. **Daily cap (medium).** On dev with a throwaway account, or by temporarily lowering the cap, check the "unavailable until tomorrow" notice on both the review and the edit form, and that another account is unaffected.
+5. **AI outage (medium).** With matching broken on dev, for example a blocked outbound call, an import must still reach the review unlinked with "Foods could not be matched right now".
+6. **Phone layout (medium).** Check the review and edit form at 375 px: the AI match chip, grams row, preview, and the Match with AI button.
+7. **Older saved recipe (low).** Press Match with AI on a recipe saved before this change, save, and reopen it.
 
 ## Halted
 
