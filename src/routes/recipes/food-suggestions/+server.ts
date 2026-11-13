@@ -17,6 +17,17 @@ export const GET = async ({ locals, url }) => {
 		store.suggest(userId, names),
 		store.getMany(userId, ids)
 	]);
-	// `foods` gives the units of rows that are already linked, to know whether they need grams.
-	return json({ suggestions, foods });
+	// Numbers ride along for the nutrition preview; `foods` also gives linked rows their units.
+	const numbers = await store.nutritionFor(userId, [
+		...suggestions.flatMap((s) => (s ? [s.id] : [])),
+		...foods.map((f) => f.id)
+	]);
+	const withNumbers = <T extends { id: string }>(food: T) => ({
+		...food,
+		nutrition: numbers.get(food.id) ?? null
+	});
+	return json({
+		suggestions: suggestions.map((s) => (s ? withNumbers(s) : null)),
+		foods: foods.map(withNumbers)
+	});
 };

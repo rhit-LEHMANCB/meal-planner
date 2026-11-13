@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const suggest = vi.fn();
 const getMany = vi.fn();
-vi.mock('$lib/server/foods', () => ({ getFoodStore: () => ({ suggest, getMany }) }));
+const nutritionFor = vi.fn();
+vi.mock('$lib/server/foods', () => ({
+	getFoodStore: () => ({ suggest, getMany, nutritionFor })
+}));
 
 import { SUGGEST_MAX } from '$lib/domain/food-match';
 import { GET } from './+server';
@@ -14,6 +17,7 @@ describe('GET /recipes/food-suggestions', () => {
 	beforeEach(() => {
 		suggest.mockReset();
 		getMany.mockReset().mockResolvedValue([]);
+		nutritionFor.mockReset().mockResolvedValue(new Map());
 	});
 
 	it('redirects signed-out visitors to sign-in', async () => {
@@ -29,7 +33,10 @@ describe('GET /recipes/food-suggestions', () => {
 		suggest.mockResolvedValue([onion, null]);
 		const res = await call('name=1+yellow+onion&name=saffron');
 		expect(suggest).toHaveBeenCalledWith('alice', ['1 yellow onion', 'saffron']);
-		expect(await res.json()).toEqual({ suggestions: [onion, null], foods: [] });
+		expect(await res.json()).toEqual({
+			suggestions: [{ ...onion, nutrition: null }, null],
+			foods: []
+		});
 	});
 
 	it('caps the number and length of names', async () => {
@@ -47,6 +54,6 @@ describe('GET /recipes/food-suggestions', () => {
 		getMany.mockResolvedValue([rice]);
 		const res = await call('id=r');
 		expect(getMany).toHaveBeenCalledWith('alice', ['r']);
-		expect(await res.json()).toEqual({ suggestions: [], foods: [rice] });
+		expect(await res.json()).toEqual({ suggestions: [], foods: [{ ...rice, nutrition: null }] });
 	});
 });
