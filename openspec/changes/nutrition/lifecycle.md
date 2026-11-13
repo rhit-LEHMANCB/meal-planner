@@ -1,7 +1,7 @@
 # Lifecycle: nutrition
 
 - Branch: `claude/dev-lifecycle-nutrition-3caa7b`
-- Stage: 7 Production PR (Gate B)
+- Stage: 4 Review (Gate B fix)
 - Review round: 1 of 3
 - QA cycle: 1 of 3
 - Started: 2026-11-12
@@ -98,7 +98,11 @@ QA cycle 1 of 3, 2026-11-13T01:57Z, independent Sonnet QA agent, deployed commit
   5. Nothing says the default goals are defaults until they are saved.
 - QA data: all `qa-` recipes, plan and log entries were removed. Custom foods `qa-nut-*` (5) and a goals row for the QA user remain, because custom foods cannot be deleted in the UI (#32). The setup also removed older `qa-*` recipes of the QA user left by other suites.
 
-## Verification checklist for the human
+## Gate B defect (2026-11-13)
+
+The human found at Gate B that the chart's screen-reader table caption ("Calories by day, week of …") renders on top of the "Calories by day" heading. Cause: `sr-only` was on the `<table>`, but a table caption is laid out outside the table box, so it was not clipped. This was also the ~15 px sideways scroll QA noted at 390 px. Fix on branch `fix/nutrition-chart-caption`: wrap the table in an `sr-only` div. Also fixed the "kcal· partial" spacing on plan day totals (QA observation 2). Classified `app bug`: stages 3 to 5 with one review round, then QA cycle 2.
+
+
 
 Ranked by risk. Production-only risks are listed first.
 
