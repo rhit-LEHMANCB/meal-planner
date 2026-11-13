@@ -98,6 +98,10 @@ QA cycle 1 of 3, 2026-11-13T01:57Z, independent Sonnet QA agent, deployed commit
   5. Nothing says the default goals are defaults until they are saved.
 - QA data: all `qa-` recipes, plan and log entries were removed. Custom foods `qa-nut-*` (5) and a goals row for the QA user remain, because custom foods cannot be deleted in the UI (#32). The setup also removed older `qa-*` recipes of the QA user left by other suites.
 
+## Gate B
+
+Production PR https://github.com/rhit-LEHMANCB/meal-planner/pull/47 (develop → production) opened 2026-11-13. Waiting for a human to verify and merge.
+
 ## Verification checklist for the human
 
 Ranked by risk. Production-only risks are listed first.
