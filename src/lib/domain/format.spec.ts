@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatMinutes, formatServings, hostname } from './format';
+import { formatGrams, formatKcal, formatMinutes, formatServings, hostname } from './format';
 
 describe('format', () => {
 	it('formats minutes', () => {
@@ -20,5 +20,12 @@ describe('format', () => {
 		expect(hostname(null)).toBeNull();
 		expect(hostname('javascript:alert(1)')).toBeNull();
 		expect(hostname('nonsense')).toBeNull();
+	});
+
+	it('formats kcal and grams as whole numbers', () => {
+		expect(formatKcal(1540.4)).toBe('1,540');
+		expect(formatKcal(0.4)).toBe('0');
+		expect(formatGrams(52.6)).toBe('53 g');
+		expect(formatGrams(1200)).toBe('1,200 g');
 	});
 });

@@ -8,10 +8,10 @@
 
 ## 2. Nutrition engine (pure)
 
-- [ ] 2.1 Extend `src/lib/domain/nutrition.ts` with `ingredientGrams`, `recipeNutrition`, `entryNutrition`, `dayTotals`, `weekAverage` and `goalProgress`. Verify `nutrition.spec.ts` covers every scenario in the nutrition spec's computation requirements (weight unit, food unit, each, row grams, full, partial, nothing linked, cook/leftover/food day, average skipping empty days, left and over).
-- [ ] 2.2 Add `src/lib/domain/food-match.ts` (`searchStem`, `suggestQuery`) with a spec: "eggs" → "egg", "tomatoes" → "tomato", "1 yellow onion, diced" → "onion", prep words dropped.
-- [ ] 2.3 Add `src/lib/domain/nutrition-form.ts` (zod): goals ranges, log food (food uuid, amount > 0, unit, date in the week, optional slot), log recipe (recipe uuid, servings > 0 up to 99, date, slot), log entry id. Verify `nutrition-form.spec.ts` for each limit and error message.
-- [ ] 2.4 Extend `format.ts` with kcal and gram formatting (whole numbers, thousands separators). Verify specs.
+- [x] 2.1 Extend `src/lib/domain/nutrition.ts` with `ingredientGrams`, `recipeNutrition`, `entryNutrition`, `dayTotals`, `weekAverage` and `goalProgress`. Verify `nutrition.spec.ts` covers every scenario in the nutrition spec's computation requirements (weight unit, food unit, each, row grams, full, partial, nothing linked, cook/leftover/food day, average skipping empty days, left and over).
+- [x] 2.2 Add `src/lib/domain/food-match.ts` (`searchStem`, `suggestQuery`) with a spec: "eggs" → "egg", "tomatoes" → "tomato", "1 yellow onion, diced" → "onion", prep words dropped.
+- [x] 2.3 Add `src/lib/domain/nutrition-form.ts` (zod): goals ranges, log food (food uuid, amount > 0, unit, date in the week, optional slot), log recipe (recipe uuid, servings > 0 up to 99, date, slot), log entry id. Verify `nutrition-form.spec.ts` for each limit and error message.
+- [x] 2.4 Extend `format.ts` with kcal and gram formatting (whole numbers, thousands separators). Verify specs.
 
 ## 3. Foods and recipes on the server
 

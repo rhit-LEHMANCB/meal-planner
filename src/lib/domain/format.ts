@@ -19,3 +19,10 @@ export const hostname = (url: string | null): string | null => {
 		return null;
 	}
 };
+
+/** 1540.4 -> "1,540". */
+export const formatKcal = (kcal: number): string => Math.round(kcal).toLocaleString('en-US');
+
+/** 52.6 -> "53 g". */
+export const formatGrams = (grams: number): string =>
+	`${Math.round(grams).toLocaleString('en-US')} g`;
