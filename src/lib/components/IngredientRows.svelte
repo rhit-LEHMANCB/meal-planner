@@ -137,9 +137,10 @@
 			.slice(0, SUGGEST_MAX);
 		const linked = targets.filter((r) => r.foodId && r.units === null).slice(0, SUGGEST_MAX);
 		if (open.length === 0 && linked.length === 0) return;
-		const params = new URLSearchParams();
-		for (const r of open) params.append('name', r.name.trim());
-		for (const r of linked) params.append('id', r.foodId);
+		const params = [
+			...open.map((r) => `name=${encodeURIComponent(r.name.trim())}`),
+			...linked.map((r) => `id=${encodeURIComponent(r.foodId)}`)
+		].join('&');
 		try {
 			const response = await fetch(`${resolve('/recipes/food-suggestions')}?${params}`);
 			if (!response.ok) return;

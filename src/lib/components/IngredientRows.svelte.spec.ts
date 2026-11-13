@@ -90,7 +90,7 @@ describe('IngredientRows with nutrition', () => {
 		const calls = stubFetch([onion]);
 		const screen = render(IngredientRows, { rows: [onionRow], nutrition: true });
 		await expect.element(screen.getByText('Onions, raw')).toBeVisible();
-		expect(calls[0]).toContain('name=yellow+onion');
+		expect(calls[0]).toContain('name=yellow%20onion');
 		expect(posted(screen, 'ingredientFoodId')).toEqual(['', '']);
 
 		await screen.getByRole('button', { name: 'Use suggested food, row 1' }).click();
