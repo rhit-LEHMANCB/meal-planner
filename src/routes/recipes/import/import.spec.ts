@@ -359,7 +359,7 @@ describe('AI food matches on the review', () => {
 							grams: '60',
 							gramsSource: 'ai'
 						},
-						{ name: 'rice', grams: undefined }
+						{ name: 'rice' }
 					]
 				},
 				info: { matching: 'matched' },
