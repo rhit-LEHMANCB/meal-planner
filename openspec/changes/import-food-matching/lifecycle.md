@@ -65,7 +65,20 @@ Accepted preflight gaps: none
 
 ## Preflight
 
-(table of checks and results, from stage 2)
+Run 2026-11-13. GitHub backend: **gh**.
+
+| Check | Result |
+| --- | --- |
+| git commit and push to `origin` | OK (branch `feature/import-food-matching` pushed) |
+| `gh auth status` with `repo` and `workflow` | OK |
+| Playwright `qa` project and browsers | OK (used by the nutrition QA cycles today) |
+| QA credentials (`.env.qa`, both accounts) | OK (gitignored; Windows ignores chmod 600, so the file shows as rw-r--r--) |
+| Dev site `/api/health` | OK |
+| Local checks on current `develop` | OK (lint, check, 658 tests with integration specs on Neon `dev`, build) |
+| Node version | GAP: local Node 22.23; `.nvmrc` says 24 (accepted for `nutrition`) |
+| Secrets | None needed (existing `ANTHROPIC_API_KEY` on both backends) |
+| **Dependency on `nutrition`** | BLOCKING for stage 3: production PR #47 is still open. `develop` is the head of #47, so merging this change to `develop` before #47 merges would add it to that release. The `recipes` delta also modifies a requirement that only exists once `nutrition` is archived. |
+| Paid AI calls in QA | QA must spend real model calls (imports and Match with AI) to test this change. About 6 to 8 AI imports and 6 to 8 matching runs per cycle, on the QA account. |
 
 ## Review rounds
 
