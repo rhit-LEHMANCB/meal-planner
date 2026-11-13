@@ -3,7 +3,7 @@
 (Renamed from `import-food-matching` at Gate A so the archive workflow, which works alphabetically, archives `nutrition` first: this change modifies a `recipes` requirement that `nutrition` adds.)
 
 - Branch: `feature/import-food-matching`
-- Stage: 3 Implement
+- Stage: 4 Review
 - Review round: 0 of 3
 - QA cycle: 0 of 3
 - Started: 2026-11-13
@@ -81,6 +81,10 @@ Run 2026-11-13. GitHub backend: **gh**.
 | Secrets | None needed (existing `ANTHROPIC_API_KEY` on both backends) |
 | **Dependency on `nutrition`** | BLOCKING for stage 3: production PR #47 is still open. `develop` is the head of #47, so merging this change to `develop` before #47 merges would add it to that release. The `recipes` delta also modifies a requirement that only exists once `nutrition` is archived. |
 | Paid AI calls in QA | QA must spend real model calls (imports and Match with AI) to test this change. About 6 to 8 AI imports and 6 to 8 matching runs per cycle, on the QA account. |
+
+## Implementation
+
+Stage 3 done 2026-11-13: all tasks ticked. Migration 0008 applied to Neon `dev`. lint, check, 708 tests (integration specs on dev), build, check:server and check:migrations pass.
 
 ## Review rounds
 

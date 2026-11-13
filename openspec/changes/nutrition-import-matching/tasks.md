@@ -27,13 +27,13 @@ Ships in the same production release as `nutrition` (PR #47). The change name so
 
 ## 5. UI
 
-- [ ] 5.1 `IngredientRows.svelte`: "AI match" marker on linked rows, "AI estimate: N g" on grams with `gramsSource` posted and switched to `user` on edit, a `preview` mode keeping per-row food nutrition and exposing rows; cleared rows remembered so suggestions and AI never refill them. Verify component specs.
-- [ ] 5.2 `RecipeForm.svelte`: `preview` panel (per serving, partial count, needs-servings), "Match with AI" button on the edit page calling `POST /recipes/food-match` and applying the result in memory, status messages. Verify component specs with a stubbed fetch.
-- [ ] 5.3 Import review page: `nutrition` and `preview` on, matching notices. Verify a page spec for `matched`, `limit` and `unavailable`.
+- [x] 5.1 `IngredientRows.svelte`: "AI match" marker on linked rows, "AI estimate: N g" on grams with `gramsSource` posted and switched to `user` on edit, a `preview` mode keeping per-row food nutrition and exposing rows; cleared rows remembered so suggestions and AI never refill them. Verify component specs.
+- [x] 5.2 `RecipeForm.svelte`: `preview` panel (per serving, partial count, needs-servings), "Match with AI" button on the edit page calling `POST /recipes/food-match` and applying the result in memory, status messages. Verify component specs with a stubbed fetch.
+- [x] 5.3 Import review page: `nutrition` and `preview` on, matching notices. Verify a page spec for `matched`, `limit` and `unavailable`.
 - [x] 5.4 `POST /recipes/food-match`: signed-in, own data only, 100 rows max, `startImport` spacing, `reserveMatch`, `applyMatches` in edit mode. Verify a route spec (signed out, cap, cooldown, shape).
-- [ ] 5.5 Recipe page: "Includes N estimated weights" note. Verify `pages.spec.ts`.
+- [x] 5.5 Recipe page: "Includes N estimated weights" note. Verify `pages.spec.ts`.
 
 ## 6. Docs and checks
 
-- [ ] 6.1 `CLAUDE.md`: the model parses, chooses among candidate foods and estimates marked weights; per-100 g numbers never from the model; the matching cap; the endpoint. Verify it matches the code.
-- [ ] 6.2 Run `npm run lint`, `npm run check`, `npm test` (with `TEST_DATABASE_URL` on dev), `npm run build`, `npm run check:server`. Verify all pass.
+- [x] 6.1 `CLAUDE.md`: the model parses, chooses among candidate foods and estimates marked weights; per-100 g numbers never from the model; the matching cap; the endpoint. Verify it matches the code.
+- [x] 6.2 Run `npm run lint`, `npm run check`, `npm test` (with `TEST_DATABASE_URL` on dev), `npm run build`, `npm run check:server`. Verify all pass.

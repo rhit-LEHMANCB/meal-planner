@@ -81,6 +81,11 @@
 						{`Partial: ${missing} of ${nutrition.total} ${nutrition.total === 1 ? 'ingredient has' : 'ingredients have'} no nutrition.`}
 					</p>
 				{/if}
+				{#if nutrition.estimated > 0}
+					<p class="text-sm text-muted" data-nutrition="estimated">
+						{`Includes ${nutrition.estimated} AI-estimated ${nutrition.estimated === 1 ? 'weight' : 'weights'}. Edit the recipe to check them.`}
+					</p>
+				{/if}
 			{/if}
 		</section>
 	{/if}

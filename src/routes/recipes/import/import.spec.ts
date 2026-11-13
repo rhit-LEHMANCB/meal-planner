@@ -413,3 +413,59 @@ describe('AI food matches on the review', () => {
 		expect(store.create).not.toHaveBeenCalled();
 	});
 });
+
+describe('review notices for AI matching', () => {
+	const html = (form: unknown) =>
+		render(ImportPage as never, {
+			props: { data: { source: 'text', aiLeft: 17, dailyLimit: 20 }, form } as never
+		}).body;
+	const review = (matching: string | null, ingredients: Record<string, string>[] = []) => ({
+		source: 'text',
+		review: {
+			values: {
+				title: 'Salsa',
+				servings: '2',
+				totalMinutes: '',
+				sourceUrl: '',
+				ingredients,
+				steps: ''
+			},
+			info: {
+				via: 'ai',
+				ingredientCount: ingredients.length,
+				needsCheck: 0,
+				droppedIngredients: 0,
+				droppedSteps: 0,
+				truncated: false,
+				matching
+			},
+			foodNutrition: {}
+		}
+	});
+	const row = {
+		raw: '1 onion',
+		amount: '1',
+		unit: '',
+		name: 'onion',
+		note: '',
+		foodId: '33333333-3333-4333-8333-333333333333',
+		foodName: 'Onions, raw',
+		foodMatch: 'ai'
+	};
+
+	it('says how many rows the AI matched and shows the food controls and preview', () => {
+		const out = html(review('matched', [row]));
+		expect(out).toContain('AI matched 1 ingredient to foods.');
+		expect(out).toContain('data-ai-match');
+		expect(out).toContain('Nutrition per serving (preview)');
+	});
+
+	it('explains a capped or failed matching run', () => {
+		expect(html(review('limit'))).toContain('AI matching is unavailable until tomorrow');
+		expect(html(review('unavailable'))).toContain('Foods could not be matched right now');
+	});
+
+	it('shows no matching notice when the review was refilled after a failed save', () => {
+		expect(html(review(null, [row]))).not.toContain('data-matching');
+	});
+});

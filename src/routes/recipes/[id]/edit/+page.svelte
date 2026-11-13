@@ -21,6 +21,7 @@
 		submitLabel="Save changes"
 		cancelHref={`/recipes/${data.id}`}
 		nutrition
+		aiMatch
 		foodUnits={data.foodUnits}
 	/>
 </div>

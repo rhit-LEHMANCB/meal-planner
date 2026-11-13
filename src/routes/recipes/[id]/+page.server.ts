@@ -15,7 +15,8 @@ export const load = async ({ locals, params }) => {
 		quantity: i.quantity,
 		unit: i.unit,
 		foodId: i.foodId ?? null,
-		grams: i.grams ?? null
+		grams: i.grams ?? null,
+		gramsSource: i.gramsSource ?? null
 	}));
 	const foods = await getFoodStore().nutritionFor(
 		userId,

@@ -61,6 +61,11 @@
 
 	const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
+	/** Rows the AI linked to a food, for the matching notice. */
+	const aiLinked = $derived(
+		review ? review.values.ingredients.filter((row) => row.foodMatch === 'ai').length : 0
+	);
+
 	const droppedNotice = $derived.by(() => {
 		const dropped = review ? review.info.droppedIngredients + review.info.droppedSteps : 0;
 		if (dropped === 0) return null;
@@ -127,6 +132,21 @@
 							{#if review.info.needsCheck > 0}
 								{plural(review.info.needsCheck, 'needs', 'need')} a second look.
 							{/if}
+						</div>
+					{/if}
+					{#if review.info.matching === 'matched' && aiLinked > 0}
+						<div class="notice notice-ok" data-matching="matched">
+							<strong>AI matched {plural(aiLinked, 'ingredient', 'ingredients')} to foods.</strong>
+							Check each "AI match" and any AI estimate before saving.
+						</div>
+					{:else if review.info.matching === 'limit'}
+						<div class="notice notice-warn" data-matching="limit">
+							AI matching is unavailable until tomorrow (daily limit reached). You can link foods
+							yourself.
+						</div>
+					{:else if review.info.matching === 'unavailable'}
+						<div class="notice notice-warn" data-matching="unavailable">
+							Foods could not be matched right now. You can link them yourself.
 						</div>
 					{/if}
 					{#if review.info.truncated}
@@ -277,6 +297,9 @@
 					cancelHref="/recipes"
 					cancelLabel="Discard"
 					action="?/save"
+					nutrition
+					preview
+					foodNutrition={review.foodNutrition ?? {}}
 				/>
 			</section>
 		{/if}
