@@ -1,9 +1,9 @@
 # Lifecycle: nutrition
 
 - Branch: `claude/dev-lifecycle-nutrition-3caa7b`
-- Stage: 5 Ship to develop
+- Stage: 7 Production PR (Gate B)
 - Review round: 1 of 3
-- QA cycle: 0 of 3
+- QA cycle: 1 of 3
 - Started: 2026-11-12
 
 ## Interview summary
@@ -79,13 +79,37 @@ Stage 3 done 2026-11-12: all 22 tasks ticked. lint, check, 652 tests (integratio
 - "Today" on the plan uses server UTC on the server side (existing issue #31); the Nutrition page corrects today in the browser.
 - `html-scan.spec.ts` linear-time test is load-sensitive and failed once in a full local run.
 
+## Ship
+
+PR https://github.com/rhit-LEHMANCB/meal-planner/pull/45 into `develop`: `verify` passed first try, merged 2026-11-12 with a merge commit (3e54ecc).
+
 ## QA report
 
-(filled in stage 6; link to the QA evidence branch)
+QA cycle 1 of 3, 2026-11-13T01:57Z, independent Sonnet QA agent, deployed commit `3e54ecc` on `develop` (dev site). **Result: PASS**, 0 failing scenarios.
+
+- Evidence: branch `qa-evidence/nutrition` (commit 351350b, not for merging): 53 screenshots in [`openspec/changes/nutrition/qa/screenshots/`](https://github.com/rhit-LEHMANCB/meal-planner/tree/qa-evidence/nutrition/openspec/changes/nutrition/qa/screenshots) and the Playwright specs in `tests/qa/nutrition/` (run with `--workers=1`).
+- Covered: every changed scenario in the foods, recipes, nutrition and meal-plan delta specs, plus a regression pass over /recipes, /plan, /grocery, /leftovers and /nutrition with no console errors, and phone layouts at 390 px.
+- Not run: "Import review unchanged" (needs a paid AI import). The import review form passes no `nutrition` flag, so it renders no food controls; a person should confirm it once.
+- Observations (all low, deferred to issues):
+  1. At 390 px a week with data scrolls sideways by about 15 px, caused by the screen-reader-only table in the chart section.
+  2. Plan day header shows "330 kcal· partial" with no space before the dot.
+  3. The log amount error says "greater than 0"; the spec says "more than 0" (behavior right).
+  4. The chart has no y-axis values (the bars are labelled, and there is a screen-reader table).
+  5. Nothing says the default goals are defaults until they are saved.
+- QA data: all `qa-` recipes, plan and log entries were removed. Custom foods `qa-nut-*` (5) and a goals row for the QA user remain, because custom foods cannot be deleted in the UI (#32). The setup also removed older `qa-*` recipes of the QA user left by other suites.
 
 ## Verification checklist for the human
 
-(filled in stage 7)
+Ranked by risk. Production-only risks are listed first.
+
+1. **Production migration (high).** After merging to `production`, check that the `Run database migrations` workflow on `production` succeeds. It applies 0005 to 0007, including the ~2 MB USDA insert. Then check that `/api/health` is ok and that food search on prod finds "Broccoli, raw". No new secrets or env vars are needed.
+2. **Real recipe import, then link foods (high).** Import a real recipe on dev. Check that the review form shows no nutrition or food links. Save it, open Edit, accept the suggestions, and check that the per-serving kcal is plausible and the partial note appears for unlinked rows.
+3. **Suggestion quality on messy lines (high).** On /recipes/new, paste about 10 real ingredient lines (garlic cloves, a can of tomatoes, salt to taste, a bunch of parsley). Judge the suggestions, and check that grams are asked for where needed.
+4. **Accuracy against labels (medium-high).** Plan and log egg, rice, chicken breast, banana and olive oil in grams and in cup, tbsp or each. Compare with package labels.
+5. **Phone use (medium).** On a real phone, use /nutrition and /plan: log, delete, scroll the chart. Note the known ~15 px sideways scroll on /nutrition.
+6. **Time zone near midnight (medium).** In the evening, on a device set to a non-UTC zone, check that /nutrition shows the local today and that logging lands on the intended day.
+7. **Screen reader and keyboard (medium).** Check the calories table, the progress bars, the goal errors and a keyboard-only food log on /nutrition.
+8. **Search over the full seed (low-medium).** Search chicken, milk, cheddar, oats and brand-like names. Check the ranking and look for odd units.
 
 ## Halted
 
