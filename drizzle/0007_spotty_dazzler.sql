@@ -1,0 +1,1 @@
+ALTER TABLE "food_log" ADD COLUMN "logged_at" timestamp with time zone DEFAULT now() NOT NULL;

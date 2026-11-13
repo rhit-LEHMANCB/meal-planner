@@ -10,7 +10,9 @@
 		submitLabel,
 		cancelHref,
 		cancelLabel = 'Cancel',
-		action
+		action,
+		nutrition = false,
+		foodUnits = {}
 	}: {
 		values: RecipeFormValues;
 		errors?: RecipeFormErrors;
@@ -19,6 +21,10 @@
 		cancelLabel?: string;
 		/** A named form action such as "?/save"; the page's default action when left out. */
 		action?: string;
+		/** Food links and grams on ingredient rows (add and edit, not import review). */
+		nutrition?: boolean;
+		/** Units of linked foods, by food id. */
+		foodUnits?: Record<string, string[]>;
 	} = $props();
 
 	let busy = $state(false);
@@ -108,7 +114,13 @@
 
 	<!-- Re-mounted when the server sends rows back (after an error), so it starts from them. -->
 	{#key values.ingredients}
-		<IngredientRows rows={values.ingredients} errors={errors.rows} error={errors.ingredients} />
+		<IngredientRows
+			rows={values.ingredients}
+			errors={errors.rows}
+			error={errors.ingredients}
+			{nutrition}
+			{foodUnits}
+		/>
 	{/key}
 
 	<div class="flex flex-col gap-1.5">

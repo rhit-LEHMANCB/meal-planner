@@ -20,6 +20,7 @@ export const LIMITS = {
 	unitMax: 20,
 	nameMax: 100,
 	noteMax: 100,
+	gramsMax: 100000,
 	stepsMax: 50,
 	stepMax: 2000
 } as const;
@@ -85,7 +86,7 @@ const schema = z.object({
 
 export type RecipeField =
 	'title' | 'servings' | 'totalMinutes' | 'sourceUrl' | 'ingredients' | 'steps';
-export type RowField = 'amount' | 'unit' | 'name' | 'note';
+export type RowField = 'amount' | 'unit' | 'name' | 'note' | 'food' | 'grams';
 
 /** One ingredient row exactly as typed. `raw` is the line as written; the editor clears it on edit. */
 export interface IngredientRowValues {
@@ -94,6 +95,11 @@ export interface IngredientRowValues {
 	unit: string;
 	name: string;
 	note: string;
+	/** Linked food id ('' = none) and its name for display; the server checks the id. */
+	foodId?: string;
+	foodName?: string;
+	/** Weight in grams typed for a linked row whose amount does not convert ('' = none). */
+	grams?: string;
 }
 
 /** The form's text exactly as typed, used to refill the form after an error. */
@@ -118,6 +124,8 @@ export interface IngredientInput extends IngredientFields {
 	/** The display line: the line as written when untouched, else rebuilt from the fields. */
 	rawText: string;
 	status: IngredientStatus;
+	foodId: string | null;
+	grams: number | null;
 }
 
 /** A validated recipe, ready to save. */
@@ -131,7 +139,7 @@ export interface RecipeInput {
 }
 
 export type RecipeFormResult =
-	| { ok: true; value: RecipeInput }
+	| { ok: true; value: RecipeInput; values: RecipeFormValues }
 	| { ok: false; errors: RecipeFormErrors; values: RecipeFormValues };
 
 interface FormLike {
@@ -152,7 +160,10 @@ export const emptyRow = (): IngredientRowValues => ({
 	amount: '',
 	unit: '',
 	name: '',
-	note: ''
+	note: '',
+	foodId: '',
+	foodName: '',
+	grams: ''
 });
 
 const isBlankRow = (row: IngredientRowValues) =>
@@ -170,7 +181,10 @@ export const lineToRow = (line: {
 	amount: line.quantity === null ? '' : formatAmount(line.quantity),
 	unit: line.unit ?? '',
 	name: line.name,
-	note: line.note ?? ''
+	note: line.note ?? '',
+	foodId: '',
+	foodName: '',
+	grams: ''
 });
 
 /** The chip for a row as currently typed. Unreadable amounts count as "check". */
@@ -186,6 +200,11 @@ export const rowStatus = (row: IngredientRowValues): IngredientStatus => {
 };
 
 const AMOUNT_ERROR = 'Use a number or a fraction such as 1/2.';
+
+/** Shown on a row whose linked food is not one the user can see. */
+export const FOOD_NOT_FOUND = 'That food was not found. Pick another one.';
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const validateRow = (row: IngredientRowValues): { errors: RowErrors; value?: IngredientInput } => {
 	const errors: RowErrors = {};
@@ -204,6 +223,16 @@ const validateRow = (row: IngredientRowValues): { errors: RowErrors; value?: Ing
 	else if (name.length > LIMITS.nameMax)
 		errors.name = `Name: ${LIMITS.nameMax} characters or fewer.`;
 	if (note.length > LIMITS.noteMax) errors.note = `Note: ${LIMITS.noteMax} characters or fewer.`;
+	const foodId = (row.foodId ?? '').trim();
+	if (foodId !== '' && !UUID.test(foodId)) errors.food = FOOD_NOT_FOUND;
+	const gramsText = (row.grams ?? '').trim();
+	const grams = gramsText === '' ? null : Number(gramsText);
+	if (
+		gramsText !== '' &&
+		(!/^\d+(\.\d+)?$/.test(gramsText) || grams === null || grams <= 0 || grams > LIMITS.gramsMax)
+	) {
+		errors.grams = `Weight must be more than 0 g, up to ${LIMITS.gramsMax.toLocaleString('en-US')} g.`;
+	}
 	if (Object.keys(errors).length > 0) return { errors };
 
 	const fields: IngredientFields = {
@@ -219,7 +248,9 @@ const validateRow = (row: IngredientRowValues): { errors: RowErrors; value?: Ing
 			...fields,
 			rawText:
 				raw !== '' && raw.length <= LIMITS.ingredientLineMax ? raw : formatIngredientLine(fields),
-			status: ingredientStatus(fields)
+			status: ingredientStatus(fields),
+			foodId: foodId || null,
+			grams: foodId ? grams : null
 		}
 	};
 };
@@ -236,6 +267,9 @@ export const parseRecipeForm = (data: FormLike): RecipeFormResult => {
 	const units = texts(data, 'ingredientUnit');
 	const names = texts(data, 'ingredientName');
 	const notes = texts(data, 'ingredientNote');
+	const foodIds = texts(data, 'ingredientFoodId');
+	const foodNames = texts(data, 'ingredientFoodName');
+	const gramsList = texts(data, 'ingredientGrams');
 	const count = Math.max(raws.length, amounts.length, units.length, names.length, notes.length);
 
 	const typed: IngredientRowValues[] = Array.from({ length: count }, (_, i) => ({
@@ -243,7 +277,10 @@ export const parseRecipeForm = (data: FormLike): RecipeFormResult => {
 		amount: amounts[i] ?? '',
 		unit: units[i] ?? '',
 		name: names[i] ?? '',
-		note: notes[i] ?? ''
+		note: notes[i] ?? '',
+		foodId: foodIds[i] ?? '',
+		foodName: foodNames[i] ?? '',
+		grams: gramsList[i] ?? ''
 	}));
 	const pasted = parseLines(text(data, 'pastedLines')).map((line) =>
 		lineToRow(parseIngredientLine(line))
@@ -284,6 +321,7 @@ export const parseRecipeForm = (data: FormLike): RecipeFormResult => {
 	const v = parsed.data;
 	return {
 		ok: true,
+		values,
 		value: {
 			title: v.title,
 			servings: Number(v.servings),
@@ -303,19 +341,30 @@ export interface StoredIngredient {
 	name: string | null;
 	note: string | null;
 	status: IngredientStatus | 'unparsed';
+	foodId?: string | null;
+	/** The linked food's name, when the user can still see it. */
+	foodName?: string | null;
+	grams?: number | null;
 }
 
 /** Editor text for a saved row. Plain-text rows are pre-filled by the line parser; nothing is saved. */
-export const storedToRow = (ingredient: StoredIngredient): IngredientRowValues =>
-	ingredient.status === 'unparsed' || ingredient.name === null
-		? lineToRow(parseIngredientLine(ingredient.rawText))
+export const storedToRow = (ingredient: StoredIngredient): IngredientRowValues => {
+	const link = {
+		foodId: ingredient.foodId && ingredient.foodName ? ingredient.foodId : '',
+		foodName: ingredient.foodId && ingredient.foodName ? ingredient.foodName : '',
+		grams: ingredient.grams == null ? '' : String(ingredient.grams)
+	};
+	return ingredient.status === 'unparsed' || ingredient.name === null
+		? { ...lineToRow(parseIngredientLine(ingredient.rawText)), ...link }
 		: {
 				raw: ingredient.rawText,
 				amount: ingredient.quantity === null ? '' : formatAmount(ingredient.quantity),
 				unit: ingredient.unit ?? '',
 				name: ingredient.name,
-				note: ingredient.note ?? ''
+				note: ingredient.note ?? '',
+				...link
 			};
+};
 
 /** Turns a saved recipe back into form values for the edit page. */
 export const recipeToFormValues = (recipe: {

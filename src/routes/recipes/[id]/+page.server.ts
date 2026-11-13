@@ -1,12 +1,34 @@
 import { error, redirect } from '@sveltejs/kit';
+import { recipeNutrition, rowCounts, type IngredientForNutrition } from '$lib/domain/nutrition';
 import { requireUserId } from '$lib/server/auth';
+import { getFoodStore } from '$lib/server/foods';
 import { getRecipeStore } from '$lib/server/recipes';
 
 export const load = async ({ locals, params }) => {
-	const recipe = await getRecipeStore().get(requireUserId(locals), params.id);
+	const userId = requireUserId(locals);
+	const recipe = await getRecipeStore().get(userId, params.id);
 	// Someone else's recipe is indistinguishable from a missing one.
 	if (!recipe) throw error(404, 'Recipe not found');
-	return { recipe };
+
+	const rows: IngredientForNutrition[] = recipe.ingredients.map((i) => ({
+		name: i.name,
+		quantity: i.quantity,
+		unit: i.unit,
+		foodId: i.foodId ?? null,
+		grams: i.grams ?? null
+	}));
+	const foods = await getFoodStore().nutritionFor(
+		userId,
+		rows.flatMap((r) => (r.foodId ? [r.foodId] : []))
+	);
+	return {
+		recipe,
+		nutrition: {
+			...recipeNutrition(rows, foods, recipe.servings),
+			/** Per ingredient row, in order: whether it counts toward nutrition. */
+			rows: rows.map((r) => rowCounts(r, foods))
+		}
+	};
 };
 
 export const actions = {

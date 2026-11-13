@@ -40,19 +40,26 @@ Mockups: https://claude.ai/artifact/LZ2eJMT726E4PtF5XzNMd5 (weekly plan, import 
   - **food:** `food_id`, `quantity`, `unit` (`g` or one of the food's `food_units`).
 - `leftover_batches.servings_remaining` is the batch's **free** servings (spare minus drawn). Change it only with a single SQL statement whose WHERE re-checks it (see `src/lib/server/plan.ts`), never read-then-write, so concurrent draws cannot over-plan a batch.
 - Routes use `getPlanStore()` and `getFoodStore()` (owner id on every method). `planned_meals` has no `user_id`: filter through `meal_plans.user_id`. Foods are visible when `user_id` is the user's or null (shared).
-- Recipe delete (`RecipeStore.remove`) is the one place outside the plan store that writes plan tables: it removes the recipe's planned meals and batches in the same batch.
+- Recipe delete (`RecipeStore.remove`) is the one place outside the plan store that writes plan tables: it removes the recipe's planned meals and batches in the same batch, and clears `food_log.recipe_id` on log entries of it (they keep their numbers).
 - Food search is `GET /plan/foods?q=`, deliberately not under `/api/*`, which is public.
 
 ## Grocery list
 
 - `/grocery?week=<Monday>` is rebuilt from the plan on every load and never stored. Sources: each cook's ingredients scaled by the batch's `servings_cooked / recipes.servings`, and each food entry in its planned amount and unit. Leftovers are never loaded, so they add nothing.
-- Items merge by `nameKey` (lowercase, collapsed spaces; no plural matching) and amounts add per normalized unit; different units show side by side. Merging, rounding (count units round up), ticks and aisles are pure: `grocery.ts`, `grocery-view.ts`, `aisles.ts` in `src/lib/domain`. Ingredients are not linked to foods yet, so nothing here uses grams or `foods` macros.
+- Items merge by `nameKey` (lowercase, collapsed spaces; no plural matching) and amounts add per normalized unit; different units show side by side. Merging, rounding (count units round up), ticks and aisles are pure: `grocery.ts`, `grocery-view.ts`, `aisles.ts` in `src/lib/domain`. Ingredients can be linked to foods (for nutrition), but the grocery list still merges by name and uses no grams or `foods` macros.
 - Stored state only, through `getGroceryStore()` (`src/lib/server/grocery.ts`, owner id on every method; lists are owned through `grocery_lists.plan_id → meal_plans.user_id`):
   - a tick is a `grocery_items` row with `item_key` and `ticked_amount` (the amounts when ticked, computed on the server). An item that needs more than its tick covers shows unticked with "More needed since you ticked it".
   - extra items are `grocery_items` rows with `is_extra` (max 100 per week, checked in the insert statement).
   - `grocery_aisle_choices` remembers a user's aisle per name key across weeks.
 - Grocery forms post to `?week=<Monday>&/name` (a bare `?/name` drops the week, so a no-JS submit would reload the wrong week) and also send a hidden `week` field; `tick` and `add`, the actions that write to a week, refuse it unless it is a Monday.
 - `pantry_items`, `grocery_items.food_id`, `aisle` and `for_meals` are unused for now.
+
+## Nutrition
+
+- Shared foods are USDA FoodData Central SR Legacy (7,793 foods, `source = 'usda'`, `source_id` = FDC id, unique on `(source, source_id)`), with household portions as `food_units`. They arrive through the generated data migration `drizzle/0006_usda_sr_legacy.sql`; regenerate with `scripts/usda/build-seed.ts` (see `scripts/usda/README.md`), never by hand. Search stems plurals (`food-match.ts`) and ranks own foods, then names starting with the first word, then shorter names.
+- Ingredient rows link to a food with `recipe_ingredients.food_id` and may carry `grams` for an amount that does not convert. The add and edit forms (`IngredientRows` with `nutrition`) suggest a food per unlinked row via `GET /recipes/food-suggestions` (signed in, max 50 names); nothing is linked until the user accepts and saves. Import review shows no food controls. `RecipeStore.foodErrors` refuses foods the user cannot see, and saves drop such links anyway.
+- All math is pure in `src/lib/domain/nutrition.ts`: weight = weight unit, else the food's unit (no unit = `each`), else the row's grams; recipe per serving = linked rows / servings, partial when any named row has no food or weight; cook = eaten × per serving, leftover = drawn × per serving, food entry = grams × per 100 g. Planned numbers are always live; only `food_log` rows are snapshotted (with `logged_at` for order).
+- `getNutritionStore()` (`src/lib/server/nutrition.ts`, owner id on every method) computes planned nutrition for entries from the plan store, and reads and writes the log and `nutrition_goals` (defaults 2000 / 140 / 230 / 70 when no row). `/nutrition?week=<Monday>` and the plan's day totals use it; nutrition forms post to `?week=<Monday>&/name` like the grocery page.
 
 ## Recipe import
 

@@ -1,7 +1,21 @@
-import { and, asc, desc, eq, ilike, inArray, sql } from 'drizzle-orm';
-import type { IngredientInput, RecipeInput, StoredIngredient } from '$lib/domain/recipe-form';
+import { and, asc, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm';
+import {
+	FOOD_NOT_FOUND,
+	type IngredientInput,
+	type RecipeInput,
+	type RowErrors,
+	type StoredIngredient
+} from '$lib/domain/recipe-form';
 import { getDb, type Db } from './db';
-import { leftoverBatches, mealPlans, plannedMeals, recipeIngredients, recipes } from './db/schema';
+import {
+	foodLog,
+	foods,
+	leftoverBatches,
+	mealPlans,
+	plannedMeals,
+	recipeIngredients,
+	recipes
+} from './db/schema';
 
 export interface RecipeSummary {
 	id: string;
@@ -41,6 +55,28 @@ const escapeLike = (term: string) => term.replace(/[\\%_]/g, '\\$&');
 export const makeRecipeStore = (db: Db) => {
 	const owned = (userId: string, id: string) => and(eq(recipes.id, id), eq(recipes.userId, userId));
 
+	/** Ids among `ids` that are foods the user can see (shared or their own). */
+	const visibleFoodIds = async (userId: string, ids: string[]) => {
+		const unique = [...new Set(ids)];
+		if (unique.length === 0) return new Set<string>();
+		const rows = await db
+			.select({ id: foods.id })
+			.from(foods)
+			.where(and(inArray(foods.id, unique), or(eq(foods.userId, userId), isNull(foods.userId))));
+		return new Set(rows.map((r) => r.id));
+	};
+
+	/** Drops links to foods the user cannot see, so a save never stores one. */
+	const withVisibleFoods = async (userId: string, ingredients: IngredientInput[]) => {
+		const visible = await visibleFoodIds(
+			userId,
+			ingredients.flatMap((i) => (i.foodId ? [i.foodId] : []))
+		);
+		return ingredients.map((i) =>
+			i.foodId && !visible.has(i.foodId) ? { ...i, foodId: null, grams: null } : i
+		);
+	};
+
 	const ingredientRows = (recipeId: string, ingredients: IngredientInput[]) =>
 		ingredients.map((ingredient, position) => ({
 			recipeId,
@@ -50,10 +86,28 @@ export const makeRecipeStore = (db: Db) => {
 			unit: ingredient.unit,
 			name: ingredient.name,
 			note: ingredient.note,
-			matchStatus: ingredient.status
+			matchStatus: ingredient.status,
+			foodId: ingredient.foodId,
+			grams: ingredient.grams === null ? null : String(ingredient.grams)
 		}));
 
 	return {
+		/**
+		 * Row errors for ingredient rows linked to a food the user cannot see (another user's custom
+		 * food or a missing one), keyed by row index. Empty when every link is fine.
+		 */
+		async foodErrors(userId: string, input: RecipeInput): Promise<Record<number, RowErrors>> {
+			const visible = await visibleFoodIds(
+				userId,
+				input.ingredients.flatMap((i) => (i.foodId ? [i.foodId] : []))
+			);
+			const errors: Record<number, RowErrors> = {};
+			input.ingredients.forEach((i, index) => {
+				if (i.foodId && !visible.has(i.foodId)) errors[index] = { food: FOOD_NOT_FOUND };
+			});
+			return errors;
+		},
+
 		/** The owner's recipes, newest first, optionally filtered by words in the title. */
 		async list(userId: string, search?: string): Promise<RecipeSummary[]> {
 			const term = search?.trim();
@@ -92,9 +146,20 @@ export const makeRecipeStore = (db: Db) => {
 					unit: recipeIngredients.unit,
 					name: recipeIngredients.name,
 					note: recipeIngredients.note,
-					matchStatus: recipeIngredients.matchStatus
+					matchStatus: recipeIngredients.matchStatus,
+					foodId: recipeIngredients.foodId,
+					grams: recipeIngredients.grams,
+					foodName: foods.name
 				})
 				.from(recipeIngredients)
+				// Only foods the user can see; a link to anything else reads as no food.
+				.leftJoin(
+					foods,
+					and(
+						eq(foods.id, recipeIngredients.foodId),
+						or(eq(foods.userId, userId), isNull(foods.userId))
+					)
+				)
 				.where(eq(recipeIngredients.recipeId, recipe.id))
 				.orderBy(asc(recipeIngredients.position));
 			const ingredients: StoredIngredient[] = rows.map((row) => ({
@@ -106,7 +171,10 @@ export const makeRecipeStore = (db: Db) => {
 				// Anything unexpected is treated as plain text, which the edit form re-parses.
 				status: STATUSES.has(row.matchStatus)
 					? (row.matchStatus as StoredIngredient['status'])
-					: 'unparsed'
+					: 'unparsed',
+				foodId: row.foodName === null ? null : row.foodId,
+				foodName: row.foodName,
+				grams: row.grams === null ? null : Number(row.grams)
 			}));
 
 			const [planned] = await db
@@ -134,6 +202,7 @@ export const makeRecipeStore = (db: Db) => {
 		/** Saves the recipe and its ingredient lines in one atomic batch. Returns the new id. */
 		async create(userId: string, input: RecipeInput): Promise<string> {
 			const id = crypto.randomUUID();
+			const ingredients = await withVisibleFoods(userId, input.ingredients);
 			const insertRecipe = db.insert(recipes).values({
 				id,
 				userId,
@@ -144,12 +213,12 @@ export const makeRecipeStore = (db: Db) => {
 				instructions: input.steps
 			});
 
-			if (input.ingredients.length === 0) {
+			if (ingredients.length === 0) {
 				await insertRecipe;
 			} else {
 				await db.batch([
 					insertRecipe,
-					db.insert(recipeIngredients).values(ingredientRows(id, input.ingredients))
+					db.insert(recipeIngredients).values(ingredientRows(id, ingredients))
 				]);
 			}
 			return id;
@@ -166,6 +235,7 @@ export const makeRecipeStore = (db: Db) => {
 				.where(owned(userId, id))
 				.limit(1);
 			if (!existing) return false;
+			const ingredients = await withVisibleFoods(userId, input.ingredients);
 
 			const updateRecipe = db
 				.update(recipes)
@@ -181,13 +251,13 @@ export const makeRecipeStore = (db: Db) => {
 				.delete(recipeIngredients)
 				.where(eq(recipeIngredients.recipeId, id));
 
-			if (input.ingredients.length === 0) {
+			if (ingredients.length === 0) {
 				await db.batch([updateRecipe, deleteIngredients]);
 			} else {
 				await db.batch([
 					updateRecipe,
 					deleteIngredients,
-					db.insert(recipeIngredients).values(ingredientRows(id, input.ingredients))
+					db.insert(recipeIngredients).values(ingredientRows(id, ingredients))
 				]);
 			}
 			return true;
@@ -196,7 +266,8 @@ export const makeRecipeStore = (db: Db) => {
 		/**
 		 * Deletes the recipe; its ingredient lines go with it, and so do its planned meals (cooks and
 		 * leftovers, which carry their batch's recipe) and its leftover batches. This is the one place
-		 * outside the plan store that writes plan tables. False if the owner has no such recipe.
+		 * outside the plan store that writes plan tables. Food log entries that logged it keep their
+		 * numbers and lose the link. False if the owner has no such recipe.
 		 */
 		async remove(userId: string, id: string): Promise<boolean> {
 			if (!UUID.test(id)) return false;
@@ -219,6 +290,11 @@ export const makeRecipeStore = (db: Db) => {
 				db
 					.delete(leftoverBatches)
 					.where(and(eq(leftoverBatches.recipeId, id), eq(leftoverBatches.userId, userId))),
+				// Log entries keep their snapshotted numbers; only the link to the recipe goes.
+				db
+					.update(foodLog)
+					.set({ recipeId: null })
+					.where(and(eq(foodLog.recipeId, id), eq(foodLog.userId, userId))),
 				db.delete(recipes).where(owned(userId, id))
 			]);
 			return true;

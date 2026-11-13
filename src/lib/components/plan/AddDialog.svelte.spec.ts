@@ -149,6 +149,7 @@ describe('AddDialog', () => {
 			slot: 'dinner',
 			kind: 'cook',
 			title: 'Turkey chili',
+			recipeId: 'r1',
 			servings: 2,
 			cooked: 6,
 			drawn: 3,

@@ -1,11 +1,19 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { formatMinutes, formatServings, hostname } from '$lib/domain/format';
+	import {
+		formatGrams,
+		formatKcal,
+		formatMinutes,
+		formatServings,
+		hostname
+	} from '$lib/domain/format';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 	const recipe = $derived(data.recipe);
 	const source = $derived(hostname(recipe.sourceUrl));
+	const nutrition = $derived(data.nutrition);
+	const missing = $derived(nutrition ? nutrition.total - nutrition.counted : 0);
 
 	let dialog: HTMLDialogElement;
 </script>
@@ -52,6 +60,31 @@
 		</div>
 	</header>
 
+	{#if nutrition}
+		<section aria-labelledby="nutrition-title" class="card flex flex-col gap-3 p-6">
+			<h2 id="nutrition-title" class="font-display text-xl font-bold">Nutrition per serving</h2>
+			{#if nutrition.counted === 0}
+				<p class="text-sm text-muted" data-nutrition="none">
+					No nutrition yet. Edit the recipe and link its ingredients to foods to count them.
+				</p>
+			{:else}
+				<dl class="flex flex-wrap gap-x-8 gap-y-3" data-nutrition="per-serving">
+					{#each [['Calories', `${formatKcal(nutrition.perServing.kcal)} kcal`], ['Protein', formatGrams(nutrition.perServing.proteinG)], ['Carbs', formatGrams(nutrition.perServing.carbsG)], ['Fat', formatGrams(nutrition.perServing.fatG)]] as [label, value] (label)}
+						<div class="flex flex-col">
+							<dt class="text-sm font-bold text-muted">{label}</dt>
+							<dd class="font-display text-2xl font-bold">{value}</dd>
+						</div>
+					{/each}
+				</dl>
+				{#if missing > 0}
+					<p class="text-sm text-[#7a4a06]" data-nutrition="partial">
+						{`Partial: ${missing} of ${nutrition.total} ${nutrition.total === 1 ? 'ingredient has' : 'ingredients have'} no nutrition.`}
+					</p>
+				{/if}
+			{/if}
+		</section>
+	{/if}
+
 	<div class="flex flex-wrap items-start gap-5">
 		<section aria-label="Ingredients" class="card min-w-0 flex-[1_1_280px] p-6">
 			<h2 class="mb-3 font-display text-xl font-bold">Ingredients</h2>
@@ -60,7 +93,20 @@
 			{:else}
 				<ul class="flex flex-col">
 					{#each recipe.ingredients as ingredient, i (i)}
-						<li class="border-t border-[#e3e9df] py-2.5">{ingredient.rawText}</li>
+						{@const counts = nutrition?.rows[i]}
+						<li
+							class="flex items-baseline justify-between gap-3 border-t border-[#e3e9df] py-2.5"
+							data-counts={nutrition ? String(counts) : undefined}
+						>
+							<span>{ingredient.rawText}</span>
+							{#if nutrition && ingredient.name}
+								{#if counts}
+									<span class="text-xs font-medium whitespace-nowrap text-herb-dark">Counted</span>
+								{:else}
+									<span class="text-xs font-medium whitespace-nowrap text-muted">No nutrition</span>
+								{/if}
+							{/if}
+						</li>
 					{/each}
 				</ul>
 			{/if}

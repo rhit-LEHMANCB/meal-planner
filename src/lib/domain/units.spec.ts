@@ -15,4 +15,9 @@ describe('toGrams', () => {
 	it('returns null when the unit is unknown for the food', () => {
 		expect(toGrams(1, 'pinch')).toBeNull();
 	});
+
+	it('ignores inherited object keys as units', () => {
+		expect(toGrams(1, 'constructor')).toBeNull();
+		expect(toGrams(1, 'toString', { cup: 120 })).toBeNull();
+	});
 });

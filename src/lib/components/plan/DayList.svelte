@@ -1,4 +1,5 @@
 <script lang="ts">
+	import DayCalories from './DayCalories.svelte';
 	import SlotCell from './SlotCell.svelte';
 	import {
 		dayName,
@@ -16,7 +17,8 @@
 		entriesIn,
 		onadd,
 		onedit,
-		onneedsconfirm
+		onneedsconfirm,
+		dayKcal = {}
 	}: {
 		days: string[];
 		today: string;
@@ -24,6 +26,8 @@
 		onadd: (date: string, slot: Slot, recipeId?: string) => void;
 		onedit: (entry: PlanEntry) => void;
 		onneedsconfirm: (entry: PlanEntry, draws: BatchDraw[]) => void;
+		/** Planned calories per day; days with nothing planned are left out. */
+		dayKcal?: Record<string, { kcal: number; partial: boolean }>;
 	} = $props();
 </script>
 
@@ -42,6 +46,7 @@
 			>
 				{`${dayName(date)} ${monthDay(date)}${date === today ? ' · today' : ''}`}
 			</h2>
+			<div class="-mt-1 mb-2"><DayCalories total={dayKcal[date]} /></div>
 			<div class="flex flex-col gap-2">
 				{#each SLOTS as slot (slot)}
 					<div class="flex items-start gap-2.5">

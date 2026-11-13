@@ -1,9 +1,14 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { resolve } from '$app/paths';
+	import { SUGGEST_MAX } from '$lib/domain/food-match';
 	import {
+		parseAmount,
 		parseIngredientLine,
 		STATUS_LABEL,
 		type IngredientStatus
 	} from '$lib/domain/ingredient-line';
+	import { unitConverts } from '$lib/domain/nutrition';
 	import {
 		emptyRow,
 		lineToRow,
@@ -13,10 +18,20 @@
 		type RowErrors
 	} from '$lib/domain/recipe-form';
 
+	/** A food as food search returns it. */
+	interface FoodOption {
+		id: string;
+		name: string;
+		own: boolean;
+		units: string[];
+	}
+
 	let {
 		rows,
 		errors = {},
-		error
+		error,
+		nutrition = false,
+		foodUnits = {}
 	}: {
 		/** Starting rows. Re-mount the component (with `{#key}`) to start over from new rows. */
 		rows: IngredientRowValues[];
@@ -24,18 +39,42 @@
 		errors?: Record<number, RowErrors>;
 		/** A message about the ingredient list as a whole. */
 		error?: string;
+		/** Show food links, suggestions and grams (add and edit forms; not import review). */
+		nutrition?: boolean;
+		/** Units of the foods the starting rows link to, by food id. */
+		foodUnits?: Record<string, string[]>;
 	} = $props();
 
 	interface Item extends IngredientRowValues {
 		id: number;
 		errors: RowErrors;
+		foodId: string;
+		foodName: string;
+		grams: string;
+		/** Units of the linked food; null while unknown. */
+		units: string[] | null;
+		suggestion: FoodOption | null;
+		/** The user linked, cleared or dismissed: no more suggestions for this row. */
+		settled: boolean;
+		searchOpen: boolean;
+		query: string;
+		results: FoodOption[] | null;
 	}
 
 	let nextId = 0;
 	const item = (row: IngredientRowValues, rowErrors: RowErrors = {}): Item => ({
 		id: nextId++,
 		...row,
-		errors: rowErrors
+		errors: rowErrors,
+		foodId: row.foodId ?? '',
+		foodName: row.foodName ?? '',
+		grams: row.grams ?? '',
+		units: row.foodId ? (foodUnits[row.foodId] ?? null) : null,
+		suggestion: null,
+		settled: Boolean(row.foodId),
+		searchOpen: false,
+		query: '',
+		results: null
 	});
 
 	// Without scripting the form can only post the rows it rendered, so there are spare empty
@@ -79,6 +118,99 @@
 		while (items.length > 0 && isBlank(items[items.length - 1])) items.pop();
 		items.push(...added, item(emptyRow()));
 		pasted = '';
+		void suggest(items.filter((r) => added.some((a) => a.id === r.id)));
+	};
+
+	/** A linked row needs a weight when its amount does not convert with the food's units. */
+	const needsGrams = (row: Item) => {
+		if (!row.foodId) return false;
+		const quantity = parseAmount(row.amount);
+		if (quantity === null || quantity === undefined || row.units === null) return true;
+		return !unitConverts(row.unit.trim() || null, row.units);
+	};
+
+	/** Suggests a food for unlinked rows with a name, and fills in the units of linked rows. */
+	const suggest = async (targets: Item[]) => {
+		if (!nutrition) return;
+		const open = targets
+			.filter((r) => !r.foodId && !r.settled && r.name.trim() !== '')
+			.slice(0, SUGGEST_MAX);
+		const linked = targets.filter((r) => r.foodId && r.units === null).slice(0, SUGGEST_MAX);
+		if (open.length === 0 && linked.length === 0) return;
+		const params = [
+			...open.map((r) => `name=${encodeURIComponent(r.name.trim())}`),
+			...linked.map((r) => `id=${encodeURIComponent(r.foodId)}`)
+		].join('&');
+		try {
+			const response = await fetch(`${resolve('/recipes/food-suggestions')}?${params}`);
+			if (!response.ok) return;
+			const result = (await response.json()) as {
+				suggestions: (FoodOption | null)[];
+				foods: FoodOption[];
+			};
+			open.forEach((r, i) => {
+				if (!r.foodId && !r.settled) r.suggestion = result.suggestions[i] ?? null;
+			});
+			for (const r of linked) {
+				r.units = result.foods.find((f) => f.id === r.foodId)?.units ?? ['g'];
+			}
+		} catch {
+			// Suggestions are a convenience; every row still has Match food.
+		}
+	};
+
+	onMount(() => {
+		void suggest(items);
+	});
+
+	const link = (row: Item, food: FoodOption) => {
+		row.foodId = food.id;
+		row.foodName = food.name;
+		row.units = food.units;
+		row.suggestion = null;
+		row.settled = true;
+		row.searchOpen = false;
+		row.results = null;
+		delete row.errors.food;
+	};
+
+	const clearFood = (row: Item) => {
+		row.foodId = '';
+		row.foodName = '';
+		row.grams = '';
+		row.units = null;
+		row.suggestion = null;
+		row.settled = true;
+	};
+
+	const dismiss = (row: Item) => {
+		row.suggestion = null;
+		row.settled = true;
+	};
+
+	const openSearch = (row: Item) => {
+		row.searchOpen = true;
+		row.query ||= row.name.trim();
+		row.results = null;
+	};
+
+	const search = async (row: Item) => {
+		const q = row.query.trim();
+		if (!q) return;
+		try {
+			const response = await fetch(`${resolve('/plan/foods')}?q=${encodeURIComponent(q)}`);
+			if (response.ok && q === row.query.trim()) {
+				row.results = ((await response.json()) as { foods: FoodOption[] }).foods;
+			}
+		} catch {
+			row.results = [];
+		}
+	};
+
+	/** A changed name gets a fresh suggestion unless the user already chose. */
+	const renamed = (row: Item) => {
+		row.suggestion = null;
+		void suggest([row]);
 	};
 
 	const CHIP: Record<IngredientStatus, string> = {
@@ -92,6 +224,7 @@
 	<legend class="label mb-1.5">Ingredients</legend>
 	<span id="ingredients-help" class="hint">
 		Amount, unit, name and an optional note for each ingredient, in the order you want them shown.
+		{#if nutrition}Link a food to count the ingredient toward nutrition.{/if}
 	</span>
 	{#if error}<span class="field-error" role="alert">{error}</span>{/if}
 
@@ -147,6 +280,7 @@
 						placeholder="Ingredient"
 						bind:value={row.name}
 						oninput={() => edited(row)}
+						onchange={() => renamed(row)}
 						aria-invalid={row.errors.name ? 'true' : undefined}
 						aria-describedby={row.errors.name ? `name-error-${row.id}` : undefined}
 					/>
@@ -193,6 +327,133 @@
 						onclick={() => remove(i)}>×</button
 					>
 				</div>
+				{#if nutrition}
+					<input type="hidden" name="ingredientFoodId" value={row.foodId} />
+					<input type="hidden" name="ingredientFoodName" value={row.foodName} />
+					{#if !needsGrams(row)}<input type="hidden" name="ingredientGrams" value="" />{/if}
+					{#if row.foodId || row.suggestion || !isBlank(row)}
+						<div
+							class="col-span-2 flex flex-wrap items-center gap-2 text-sm xl:col-span-6"
+							data-food={row.foodId ? 'linked' : row.suggestion ? 'suggested' : 'none'}
+						>
+							{#if row.foodId}
+								<span class="min-w-0">Food: <strong>{row.foodName}</strong></span>
+								<button
+									type="button"
+									class="btn btn-secondary min-h-11 px-3"
+									aria-label="Change food, row {n}"
+									onclick={() => openSearch(row)}>Change</button
+								>
+								<button
+									type="button"
+									class="btn btn-secondary min-h-11 px-3"
+									aria-label="Clear food, row {n}"
+									onclick={() => clearFood(row)}>Clear</button
+								>
+							{:else if row.suggestion}
+								{@const suggestion = row.suggestion}
+								<span
+									class="rounded-full bg-leftover-tint px-2.5 py-1 text-xs font-bold text-[#7a4a06]"
+									>Suggested</span
+								>
+								<strong class="min-w-0">{suggestion.name}</strong>
+								<button
+									type="button"
+									class="btn btn-secondary min-h-11 px-3"
+									aria-label="Use suggested food, row {n}"
+									onclick={() => link(row, suggestion)}>Use</button
+								>
+								<button
+									type="button"
+									class="btn btn-secondary min-h-11 px-3"
+									aria-label="Dismiss suggested food, row {n}"
+									onclick={() => dismiss(row)}>Dismiss</button
+								>
+								<button
+									type="button"
+									class="btn btn-secondary min-h-11 px-3"
+									aria-label="Match food, row {n}"
+									onclick={() => openSearch(row)}>Other food</button
+								>
+							{:else}
+								<span class="text-muted">No food linked, so it adds no nutrition.</span>
+								<button
+									type="button"
+									class="btn btn-secondary min-h-11 px-3"
+									aria-label="Match food, row {n}"
+									onclick={() => openSearch(row)}>Match food</button
+								>
+							{/if}
+						</div>
+					{/if}
+					{#if needsGrams(row)}
+						<div class="col-span-2 flex flex-wrap items-center gap-2 xl:col-span-6">
+							<label class="text-sm font-bold" for="grams-{row.id}">About how many grams?</label>
+							<input
+								id="grams-{row.id}"
+								name="ingredientGrams"
+								class="input min-h-11 w-28 px-2"
+								inputmode="decimal"
+								bind:value={row.grams}
+								oninput={() => delete row.errors.grams}
+								aria-invalid={row.errors.grams ? 'true' : undefined}
+								aria-describedby="grams-help-{row.id}"
+							/>
+							<span id="grams-help-{row.id}" class="hint">
+								{row.grams.trim()
+									? 'Used for nutrition, since this amount does not convert for the food.'
+									: 'This amount does not convert for the food, so it adds no nutrition until you enter a weight.'}
+							</span>
+						</div>
+					{/if}
+					{#if row.searchOpen}
+						<div
+							class="col-span-2 flex flex-col gap-2 rounded-xl border border-[#dde3da] p-3 xl:col-span-6"
+						>
+							<label class="label" for="food-search-{row.id}">Find a food for row {n}</label>
+							<div class="flex flex-wrap gap-2">
+								<input
+									id="food-search-{row.id}"
+									type="search"
+									class="input min-h-11 min-w-0 flex-1 px-2"
+									bind:value={row.query}
+									onkeydown={(e) => {
+										if (e.key === 'Enter') {
+											e.preventDefault();
+											void search(row);
+										}
+									}}
+								/>
+								<button type="button" class="btn btn-secondary min-h-11" onclick={() => search(row)}
+									>Search</button
+								>
+								<button
+									type="button"
+									class="btn btn-secondary min-h-11"
+									onclick={() => (row.searchOpen = false)}>Cancel</button
+								>
+							</div>
+							{#if row.results && row.results.length > 0}
+								<ul class="flex flex-col gap-1" aria-label="Foods for row {n}">
+									{#each row.results as food (food.id)}
+										<li>
+											<button
+												type="button"
+												class="flex min-h-11 w-full items-center rounded-lg px-3 text-left hover:bg-herb-tint"
+												onclick={() => link(row, food)}
+											>
+												{food.name}
+												{#if food.own}<span class="ml-2 text-xs text-muted">Yours</span>{/if}
+											</button>
+										</li>
+									{/each}
+								</ul>
+							{:else if row.results}
+								<p class="text-sm text-muted">No foods match.</p>
+							{/if}
+						</div>
+					{/if}
+				{/if}
 				{#if row.raw || Object.keys(row.errors).length > 0}
 					<div class="col-span-2 flex flex-col gap-0.5 xl:col-span-6">
 						{#if row.raw}<span class="text-[13px] text-muted">As written: {row.raw}</span>{/if}
