@@ -274,27 +274,30 @@
 				* Partial: some ingredients or entries that day have no nutrition.
 			</p>
 		{/if}
-		<table class="sr-only">
-			<caption>Calories by day, week of {weekLabel(data.monday)}</caption>
-			<thead>
-				<tr
-					><th scope="col">Day</th><th scope="col">Planned</th><th scope="col">Leftovers</th><th
-						scope="col">Logged</th
-					><th scope="col">Total</th></tr
-				>
-			</thead>
-			<tbody>
-				{#each view.days as day (day.date)}
-					<tr data-day={day.date} data-total={Math.round(day.total.kcal)}>
-						<th scope="row">{dayName(day.date)} {monthDay(day.date)}</th>
-						<td>{formatKcal(day.planned.kcal)} kcal</td>
-						<td>{formatKcal(day.leftover.kcal)} kcal</td>
-						<td>{formatKcal(day.logged.kcal)} kcal</td>
-						<td>{formatKcal(day.total.kcal)} kcal{day.partial ? ' (partial)' : ''}</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
+		<!-- Wrapped: a table caption sits outside the table box, so sr-only on the table would not hide it. -->
+		<div class="sr-only">
+			<table>
+				<caption>Calories by day, week of {weekLabel(data.monday)}</caption>
+				<thead>
+					<tr
+						><th scope="col">Day</th><th scope="col">Planned</th><th scope="col">Leftovers</th><th
+							scope="col">Logged</th
+						><th scope="col">Total</th></tr
+					>
+				</thead>
+				<tbody>
+					{#each view.days as day (day.date)}
+						<tr data-day={day.date} data-total={Math.round(day.total.kcal)}>
+							<th scope="row">{dayName(day.date)} {monthDay(day.date)}</th>
+							<td>{formatKcal(day.planned.kcal)} kcal</td>
+							<td>{formatKcal(day.leftover.kcal)} kcal</td>
+							<td>{formatKcal(day.logged.kcal)} kcal</td>
+							<td>{formatKcal(day.total.kcal)} kcal{day.partial ? ' (partial)' : ''}</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
 	</section>
 
 	<div class="flex flex-wrap items-start gap-5">

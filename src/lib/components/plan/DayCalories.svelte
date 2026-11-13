@@ -18,10 +18,8 @@
 		data-day-kcal={Math.round(total.kcal)}
 		data-partial={total.partial ? 'true' : undefined}
 	>
-		{formatKcal(total.kcal)} kcal{#if total.partial}<span
-				title="Some ingredients or entries have no nutrition"
-			>
-				· partial</span
+		{`${formatKcal(total.kcal)} kcal`}{#if total.partial}<span
+				title="Some ingredients or entries have no nutrition">{' · partial'}</span
 			>{/if}
 	</div>
 {/if}

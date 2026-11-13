@@ -14,6 +14,7 @@ describe('DayCalories', () => {
 		const screen = render(DayCalories, { total: { kcal: 1200, partial: true } });
 		await expect.element(screen.getByText('1,200 kcal')).toBeVisible();
 		await expect.element(screen.getByText('· partial')).toBeVisible();
+		expect(screen.container.textContent?.trim()).toBe('1,200 kcal · partial');
 	});
 
 	it('shows nothing for a day with nothing planned', () => {

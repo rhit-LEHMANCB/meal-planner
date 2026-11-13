@@ -73,6 +73,13 @@ describe('nutrition page', () => {
 		expect(out).toContain('Partial: some ingredients or entries that day have no nutrition');
 	});
 
+	it('hides the screen-reader table, caption included, inside an sr-only wrapper', () => {
+		const out = page([planned(MON, 800)]);
+		// sr-only on the table itself leaves its caption visible on top of the heading.
+		expect(out).toMatch(/<div class="sr-only"><table><caption>Calories by day/);
+		expect(out).not.toContain('<table class="sr-only"');
+	});
+
 	it('posts forms with the week and credits USDA', () => {
 		const out = page([]);
 		expect(out).toContain(`action="?week=${MON}&amp;/log"`);
