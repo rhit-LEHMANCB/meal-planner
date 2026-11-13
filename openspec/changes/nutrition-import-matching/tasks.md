@@ -1,24 +1,24 @@
 # Tasks
 
-Start only after the `nutrition` change is merged to `production` and archived (its `recipes` requirements must be in `openspec/specs/`). Rebase this branch on `origin/develop` first.
+Ships in the same production release as `nutrition` (PR #47). The change name sorts after `nutrition`, so the archive workflow archives `nutrition` first.
 
 ## 1. Schema
 
-- [ ] 1.1 `schema.ts`: `recipe_ingredients.grams_source` (nullable text), `import_usage.match_count` (integer, not null, default 0) and `match_day` (nullable date). Run `npm run db:generate` and commit. Verify `npm run check` and `npm run check:migrations`.
-- [ ] 1.2 Apply the migration to the Neon `dev` branch locally for integration specs. Verify `drizzle-kit migrate` succeeds.
+- [x] 1.1 `schema.ts`: `recipe_ingredients.grams_source` (nullable text), `import_usage.match_count` (integer, not null, default 0) and `match_day` (nullable date). Run `npm run db:generate` and commit. Verify `npm run check` and `npm run check:migrations`.
+- [x] 1.2 Apply the migration to the Neon `dev` branch locally for integration specs. Verify `drizzle-kit migrate` succeeds.
 
 ## 2. Pure logic
 
-- [ ] 2.1 `src/lib/domain/food-match.ts`: `applyMatches(rows, matches, mode)` (import and edit modes; food only on unlinked and not cleared rows; estimate only when the amount does not convert with the chosen food, finite, 0 < g ≤ 5000; `gramsSource: 'ai'`, `foodMatch: 'ai'`). Verify a spec covering every scenario of "AI estimates weights that do not convert" and the edit-mode rules (linked kept, cleared kept, typed weight kept).
-- [ ] 2.2 `nutrition.ts`: `recipeNutrition` also returns `estimated` (counted rows with `gramsSource` `ai`). Verify specs.
-- [ ] 2.3 `recipe-form.ts`: parse `ingredientGramsSource` (`ai` kept only with grams, else `user`) into rows and `IngredientInput`; refill values carry it. Verify `recipe-form.spec.ts`.
+- [x] 2.1 `src/lib/domain/food-match.ts`: `applyMatches(rows, matches, mode)` (import and edit modes; food only on unlinked and not cleared rows; estimate only when the amount does not convert with the chosen food, finite, 0 < g ≤ 5000; `gramsSource: 'ai'`, `foodMatch: 'ai'`). Verify a spec covering every scenario of "AI estimates weights that do not convert" and the edit-mode rules (linked kept, cleared kept, typed weight kept).
+- [x] 2.2 `nutrition.ts`: `recipeNutrition` also returns `estimated` (counted rows with `gramsSource` `ai`). Verify specs.
+- [x] 2.3 `recipe-form.ts`: parse `ingredientGramsSource` (`ai` kept only with grams, else `user`) into rows and `IngredientInput`; refill values carry it. Verify `recipe-form.spec.ts`.
 
 ## 3. Server
 
 - [ ] 3.1 `import-usage.ts`: `reserveMatch`, `refundMatch`, `DAILY_AI_MATCHES = 50`. Verify `import-usage.integration.spec.ts` on dev: 50 allowed then refused, new UTC day resets, per user, AI import counts untouched.
 - [ ] 3.2 `FoodStore.search` optional `limit`; `/plan/foods` results add `per100g` and `unitGrams`. Verify the foods integration spec and that the plan Add dialog specs still pass.
 - [ ] 3.3 `src/lib/server/ai/food-match.ts`: candidate search (8 per row, 100 rows, 8 concurrent), `save_matches` tool call to `claude-haiku-5-5` with per-request keys, lenient salvage, 30 s timeout, error classification (reached model or not). Verify a unit spec with a fake client: keys map to the right foods, unknown keys and rows are dropped, out-of-range grams are dropped by `applyMatches`, a thrown error gives `unavailable`, the prompt puts rows and candidate names inside the data block.
-- [ ] 3.4 `RecipeStore`: save and load `grams_source`. Verify `recipes.integration.spec.ts` (an `ai` estimate survives save and reload; a `user` weight stays `user`).
+- [x] 3.4 `RecipeStore`: save and load `grams_source`. Verify `recipes.integration.spec.ts` (an `ai` estimate survives save and reload; a `user` weight stays `user`).
 
 ## 4. Import flow
 

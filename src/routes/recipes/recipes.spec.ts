@@ -168,7 +168,8 @@ describe('create', () => {
 						note: 'drained',
 						status: 'parsed',
 						foodId: null,
-						grams: null
+						grams: null,
+						gramsSource: null
 					}
 				]
 			})

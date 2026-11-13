@@ -89,7 +89,7 @@ See proposal.md (Why) and the two delta specs. Current state after the `nutritio
 - **Extra latency on import, about 2 to 5 s with Haiku.** Candidate search runs in parallel, with 8 at a time. The match timeout is 30 s, and on timeout the review is shown without matches.
 - **Cost.** One extra Haiku call per import, capped at 50 runs a day per user.
 - **Prompt injection through ingredient lines or custom food names.** Both go in a data block, as with parsing. The output can only choose offered keys and numbers that are then bounded.
-- **Specs depend on `nutrition` being archived first.** This change's `recipes` delta modifies a requirement that `nutrition` adds. Implementation and merge to `develop` wait until `nutrition` is in production and archived.
+- **Specs depend on `nutrition` being archived first.** This change's `recipes` delta modifies a requirement that `nutrition` adds. Both ship in one production release, and the change is named `nutrition-import-matching` so the alphabetical archive workflow archives `nutrition` first.
 
 ## Migration Plan
 

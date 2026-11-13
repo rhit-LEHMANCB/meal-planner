@@ -78,8 +78,10 @@ export interface IngredientForNutrition {
 	quantity: number | null;
 	unit: string | null;
 	foodId: string | null;
-	/** Weight the user entered for a row whose amount does not convert. */
+	/** Weight for a row whose amount does not convert. */
 	grams: number | null;
+	/** 'ai' when `grams` is an AI estimate. */
+	gramsSource?: string | null;
 }
 
 /** A linked row's weight: its amount if it converts, else the grams entered on the row. */
@@ -97,6 +99,8 @@ export interface RecipeNutrition {
 	counted: number;
 	total: number;
 	partial: boolean;
+	/** Counted rows whose weight is an AI estimate. */
+	estimated: number;
 }
 
 export const recipeNutrition = (
@@ -106,16 +110,22 @@ export const recipeNutrition = (
 ): RecipeNutrition => {
 	const named = rows.filter((r) => r.name !== null && r.name.trim() !== '');
 	const parts: Macros[] = [];
+	let estimated = 0;
 	for (const row of named) {
 		const food = row.foodId ? foodsById.get(row.foodId) : undefined;
 		const grams = ingredientGrams(row, food);
-		if (food && grams !== null) parts.push(macrosForGrams(food, grams));
+		if (food && grams !== null) {
+			parts.push(macrosForGrams(food, grams));
+			if (row.gramsSource === 'ai' && amountGrams(row.quantity, row.unit, food) === null)
+				estimated++;
+		}
 	}
 	return {
 		perServing: servings > 0 ? perServing(sumMacros(parts), servings) : ZERO_MACROS,
 		counted: parts.length,
 		total: named.length,
-		partial: parts.length < named.length || named.length === 0
+		partial: parts.length < named.length || named.length === 0,
+		estimated
 	};
 };
 
