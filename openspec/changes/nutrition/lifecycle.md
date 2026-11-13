@@ -1,8 +1,8 @@
 # Lifecycle: nutrition
 
 - Branch: `claude/dev-lifecycle-nutrition-3caa7b`
-- Stage: 4 Review (Gate B fix)
-- Review round: 1 of 3
+- Stage: 5 Ship to develop (Gate B fix)
+- Review round: 2 of 3
 - QA cycle: 1 of 3
 - Started: 2026-11-12
 
@@ -70,6 +70,7 @@ Stage 3 done 2026-11-12: all 22 tasks ticked. lint, check, 652 tests (integratio
 
 ## Review rounds
 
+- Round 2 (2026-11-13, Gate B fix, fresh Sonnet reviewer): 0 blockers, 0 majors, 2 minors, 2 nits. Fixed: the same glued "· partial" on the Today card, a less markup-bound caption test, and the non-breaking space written as an escape.
 - Round 1 (2026-11-12, fresh Sonnet reviewer): 0 blockers, 0 majors, 4 minors, 2 nits. Exit condition met. Fixed anyway (trivial): inherited object keys as units (`Object.hasOwn` in `toGrams` and `log`, non-finite grams refused), oversized log entries refused before the insert (`too_large`), plan load test that logs never reach day totals, `logged_at` documented in design/proposal, script name in design/tasks.
 
 ## Deferred findings

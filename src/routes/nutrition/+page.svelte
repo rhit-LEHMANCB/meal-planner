@@ -156,8 +156,8 @@
 		<section aria-label="Today" class="flex flex-wrap gap-5">
 			<div class="card flex min-w-0 flex-[1_1_320px] flex-col gap-4 p-6" data-testid="today-card">
 				<div class="text-sm font-bold text-muted">
-					{dayName(today)} so far{#if todayDay.partial}<span class="font-medium">
-							· partial</span
+					{dayName(today)} so far{#if todayDay.partial}<span class="font-medium"
+							>&nbsp;· partial</span
 						>{/if}
 				</div>
 				<div class="flex items-baseline gap-2">
