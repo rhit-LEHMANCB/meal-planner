@@ -102,6 +102,8 @@ export interface PlanEntry {
 	slot: Slot;
 	kind: EntryKind;
 	title: string;
+	/** Cook: its recipe. Leftover: its batch's recipe. Null for foods. */
+	recipeId: string | null;
 	/** Cook: servings eaten. Leftover: servings drawn. */
 	servings: number;
 	/** Cook: servings cooked. */

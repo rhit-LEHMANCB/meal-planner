@@ -8,6 +8,7 @@ import {
 } from '$lib/domain/recipe-form';
 import { getDb, type Db } from './db';
 import {
+	foodLog,
 	foods,
 	leftoverBatches,
 	mealPlans,
@@ -265,7 +266,8 @@ export const makeRecipeStore = (db: Db) => {
 		/**
 		 * Deletes the recipe; its ingredient lines go with it, and so do its planned meals (cooks and
 		 * leftovers, which carry their batch's recipe) and its leftover batches. This is the one place
-		 * outside the plan store that writes plan tables. False if the owner has no such recipe.
+		 * outside the plan store that writes plan tables. Food log entries that logged it keep their
+		 * numbers and lose the link. False if the owner has no such recipe.
 		 */
 		async remove(userId: string, id: string): Promise<boolean> {
 			if (!UUID.test(id)) return false;
@@ -288,6 +290,11 @@ export const makeRecipeStore = (db: Db) => {
 				db
 					.delete(leftoverBatches)
 					.where(and(eq(leftoverBatches.recipeId, id), eq(leftoverBatches.userId, userId))),
+				// Log entries keep their snapshotted numbers; only the link to the recipe goes.
+				db
+					.update(foodLog)
+					.set({ recipeId: null })
+					.where(and(eq(foodLog.recipeId, id), eq(foodLog.userId, userId))),
 				db.delete(recipes).where(owned(userId, id))
 			]);
 			return true;

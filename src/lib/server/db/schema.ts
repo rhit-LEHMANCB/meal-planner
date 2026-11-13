@@ -242,7 +242,9 @@ export const foodLog = pgTable(
 		kcal: numeric('kcal', { precision: 8, scale: 2 }).notNull(),
 		proteinG: numeric('protein_g', { precision: 8, scale: 2 }).notNull(),
 		carbsG: numeric('carbs_g', { precision: 8, scale: 2 }).notNull(),
-		fatG: numeric('fat_g', { precision: 8, scale: 2 }).notNull()
+		fatG: numeric('fat_g', { precision: 8, scale: 2 }).notNull(),
+		/** When the entry was logged, to list a day's entries in order. */
+		loggedAt: timestamp('logged_at', { withTimezone: true }).notNull().defaultNow()
 	},
 	(t) => [index('food_log_user_date_idx').on(t.userId, t.date)]
 );
