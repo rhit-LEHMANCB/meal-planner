@@ -1,7 +1,7 @@
 # Lifecycle: import-food-matching
 
 - Branch: `feature/import-food-matching`
-- Stage: 1 Interview
+- Stage: 2 Propose + preflight
 - Review round: 0 of 3
 - QA cycle: 0 of 3
 - Started: 2026-11-13
@@ -10,7 +10,7 @@ Request (user, 2026-11-13): "make it so that the import feature uses AI to attem
 
 ## Interview summary
 
-Approved: no (pending confirmation)
+Approved: yes (user confirmed 2026-11-13)
 
 **Goal.** When a recipe is imported, and on request for a saved recipe, use AI to link each ingredient row to a food and to estimate a weight in grams where the amount cannot be converted, so imported recipes have nutrition right away. Calorie and macro values per 100 g still come only from the foods table; the model only chooses among real foods and estimates weights, and every estimate is visibly marked.
 
