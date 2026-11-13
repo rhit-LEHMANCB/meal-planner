@@ -19,7 +19,7 @@
 		data-partial={total.partial ? 'true' : undefined}
 	>
 		{`${formatKcal(total.kcal)} kcal`}{#if total.partial}<span
-				title="Some ingredients or entries have no nutrition">{' · partial'}</span
+				title="Some ingredients or entries have no nutrition">&nbsp;· partial</span
 			>{/if}
 	</div>
 {/if}
