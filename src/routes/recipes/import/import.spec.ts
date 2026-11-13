@@ -7,12 +7,14 @@ const importer = vi.hoisted(() => ({
 	fromPhoto: vi.fn()
 }));
 const usage = vi.hoisted(() => ({ remainingToday: vi.fn() }));
-const store = vi.hoisted(() => ({ create: vi.fn() }));
+const store = vi.hoisted(() => ({ create: vi.fn(), foodErrors: vi.fn() }));
+const foods = vi.hoisted(() => ({ nutritionFor: vi.fn() }));
 
 vi.mock('$env/dynamic/private', () => ({ env: {} }));
 vi.mock('$lib/server/ai/import', () => ({ getImporter: () => importer }));
 vi.mock('$lib/server/import-usage', () => ({ getImportUsage: () => usage, DAILY_AI_IMPORTS: 20 }));
 vi.mock('$lib/server/recipes', () => ({ getRecipeStore: () => store }));
+vi.mock('$lib/server/foods', () => ({ getFoodStore: () => foods }));
 
 import { actions, load } from './+page.server';
 import ImportPage from './+page.svelte';
@@ -41,6 +43,8 @@ const draft = {
 beforeEach(() => {
 	vi.resetAllMocks();
 	usage.remainingToday.mockResolvedValue(17);
+	store.foodErrors.mockResolvedValue({});
+	foods.nutritionFor.mockResolvedValue(new Map());
 });
 
 describe('import page load', () => {
@@ -71,7 +75,9 @@ describe('import actions', () => {
 			draft,
 			droppedIngredients: 2,
 			droppedSteps: 0,
-			truncated: false
+			truncated: false,
+			matching: 'none',
+			matches: []
 		});
 		const result = await actions.link(
 			event({ request: post({ link: ' https://example.com/chili ' }), locals: locals() })
@@ -297,5 +303,113 @@ describe('import page', () => {
 		expect(out).toContain('We could not read a recipe from that page.');
 		expect(out).toContain('Recipe text');
 		expect(out).toContain('name="sourceUrl" value="https://blocked.example/"');
+	});
+});
+
+describe('AI food matches on the review', () => {
+	const cilantro = {
+		id: '22222222-2222-4222-8222-222222222222',
+		name: 'Coriander leaves, raw',
+		units: ['g']
+	};
+	const imported = (matches: unknown[], matching = 'matched') => ({
+		ok: true,
+		via: 'ai',
+		draft: {
+			...draft,
+			ingredients: [
+				{ raw: '1 bunch cilantro', quantity: 1, unit: 'bunch', name: 'cilantro', note: null },
+				{ raw: '200 g rice', quantity: 200, unit: 'g', name: 'rice', note: null }
+			]
+		},
+		droppedIngredients: 0,
+		droppedSteps: 0,
+		truncated: false,
+		matching,
+		matches
+	});
+
+	it('pre-links matched rows with marked estimates and sends their numbers', async () => {
+		importer.fromText.mockResolvedValue(
+			imported([
+				{ index: 0, food: cilantro, grams: 60 },
+				{ index: 1, food: null, grams: 200 }
+			])
+		);
+		const per100 = {
+			id: cilantro.id,
+			kcalPer100g: 23,
+			proteinPer100g: 2,
+			carbsPer100g: 4,
+			fatPer100g: 0.5,
+			units: {}
+		};
+		foods.nutritionFor.mockResolvedValue(new Map([[cilantro.id, per100]]));
+		const result = await actions.text(
+			event({ request: post({ text: 'Salsa' }), locals: locals() })
+		);
+		expect(result).toMatchObject({
+			review: {
+				values: {
+					ingredients: [
+						{
+							foodId: cilantro.id,
+							foodName: cilantro.name,
+							foodMatch: 'ai',
+							grams: '60',
+							gramsSource: 'ai'
+						},
+						{ name: 'rice', grams: undefined }
+					]
+				},
+				info: { matching: 'matched' },
+				foodNutrition: { [cilantro.id]: per100 }
+			}
+		});
+		expect(foods.nutritionFor).toHaveBeenCalledWith(ME, [cilantro.id]);
+	});
+
+	it('reports a capped or failed matching run on the review', async () => {
+		importer.fromText.mockResolvedValue(imported([], 'limit'));
+		const result = await actions.text(
+			event({ request: post({ text: 'Salsa' }), locals: locals() })
+		);
+		expect(result).toMatchObject({ review: { info: { matching: 'limit' } } });
+	});
+
+	it('refuses to save a link to a food the user cannot see, keeping the review', async () => {
+		store.foodErrors.mockResolvedValue({
+			0: { food: 'That food was not found. Pick another one.' }
+		});
+		const body = new FormData();
+		for (const [k, v] of Object.entries({ title: 'Salsa', servings: '2', steps: '' }))
+			body.set(k, v);
+		for (const [field, value] of Object.entries({
+			ingredientRaw: '',
+			ingredientAmount: '1',
+			ingredientUnit: 'bunch',
+			ingredientName: 'cilantro',
+			ingredientNote: '',
+			ingredientFoodId: cilantro.id,
+			ingredientFoodName: cilantro.name,
+			ingredientGrams: '60',
+			ingredientGramsSource: 'ai',
+			ingredientFoodMatch: 'ai'
+		}))
+			body.append(field, value);
+		const result = await actions.save(
+			event({
+				request: new Request('http://localhost/recipes/import', { method: 'POST', body }),
+				locals: locals()
+			})
+		);
+		expect(result).toMatchObject({
+			status: 400,
+			data: {
+				errors: { rows: { 0: { food: expect.any(String) } } },
+				review: { values: { ingredients: [{ foodId: cilantro.id, gramsSource: 'ai' }] } }
+			}
+		});
+		expect(store.create).not.toHaveBeenCalled();
 	});
 });

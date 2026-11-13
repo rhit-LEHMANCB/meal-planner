@@ -1,8 +1,12 @@
 import { fail, redirect } from '@sveltejs/kit';
+import { applyMatches } from '$lib/domain/food-match';
+import type { FoodNutrition } from '$lib/domain/nutrition';
 import { parseRecipeForm, rowStatus, type RecipeFormValues } from '$lib/domain/recipe-form';
 import { draftToFormValues } from '$lib/domain/recipe-import';
 import { getImporter, type ImportFailure, type ImportResult } from '$lib/server/ai/import';
+import type { MatchStatus } from '$lib/server/ai/food-match';
 import { requireUserId } from '$lib/server/auth';
+import { getFoodStore } from '$lib/server/foods';
 import { DAILY_AI_IMPORTS, getImportUsage } from '$lib/server/import-usage';
 import { getRecipeStore } from '$lib/server/recipes';
 
@@ -17,6 +21,8 @@ export interface ReviewInfo {
 	droppedIngredients: number;
 	droppedSteps: number;
 	truncated: boolean;
+	/** How AI food matching went; null when the review was refilled after a failed save. */
+	matching: MatchStatus | null;
 }
 
 export const load = async ({ locals, url }) => {
@@ -68,8 +74,21 @@ const field = (data: FormData, name: string) => {
 	return typeof value === 'string' ? value : '';
 };
 
+/** Numbers for the foods the rows link, for the review's nutrition preview (visible foods only). */
+const nutritionOf = async (
+	userId: string,
+	values: RecipeFormValues
+): Promise<Record<string, FoodNutrition>> =>
+	Object.fromEntries(
+		await getFoodStore().nutritionFor(
+			userId,
+			values.ingredients.flatMap((row) => (row.foodId ? [row.foodId] : []))
+		)
+	);
+
 /** Turns an import result into the page's form state: the review, or the error and what was typed. */
-const respond = (
+const respond = async (
+	userId: string,
 	source: ImportSource,
 	result: ImportResult,
 	typed: { link?: string; text?: string; sourceUrl?: string }
@@ -84,23 +103,30 @@ const respond = (
 			sourceUrl: typed.sourceUrl ?? ''
 		});
 	}
-	const values = draftToFormValues(result.draft);
+	const draftValues = draftToFormValues(result.draft);
+	// AI matches become linked rows (marked) and weight estimates; the rows start unlinked.
+	const values: RecipeFormValues = {
+		...draftValues,
+		ingredients: applyMatches(draftValues.ingredients, result.matches, () => undefined)
+	};
+	const foodNutrition = await nutritionOf(userId, values);
 	const info: ReviewInfo = {
 		via: result.via,
 		ingredientCount: values.ingredients.length,
 		needsCheck: values.ingredients.filter((row) => rowStatus(row) === 'check').length,
 		droppedIngredients: result.droppedIngredients,
 		droppedSteps: result.droppedSteps,
-		truncated: result.truncated
+		truncated: result.truncated,
+		matching: result.matching
 	};
-	return { source, review: { values, info } };
+	return { source, review: { values, info, foodNutrition } };
 };
 
 export const actions = {
 	link: async ({ request, locals }) => {
 		const userId = requireUserId(locals);
 		const link = field(await request.formData(), 'link').trim();
-		return respond('link', await getImporter().fromLink(userId, link), { link });
+		return respond(userId, 'link', await getImporter().fromLink(userId, link), { link });
 	},
 
 	text: async ({ request, locals }) => {
@@ -108,7 +134,7 @@ export const actions = {
 		const data = await request.formData();
 		const text = field(data, 'text');
 		const sourceUrl = field(data, 'sourceUrl');
-		return respond('text', await getImporter().fromText(userId, text, sourceUrl || null), {
+		return respond(userId, 'text', await getImporter().fromText(userId, text, sourceUrl || null), {
 			text,
 			sourceUrl
 		});
@@ -118,6 +144,7 @@ export const actions = {
 		const userId = requireUserId(locals);
 		const photo = (await request.formData()).get('photo');
 		return respond(
+			userId,
 			'photo',
 			await getImporter().fromPhoto(userId, photo instanceof File ? photo : null),
 			{}
@@ -128,7 +155,11 @@ export const actions = {
 	save: async ({ request, locals }) => {
 		const userId = requireUserId(locals);
 		const result = parseRecipeForm(await request.formData());
-		if (!result.ok) {
+		const store = getRecipeStore();
+		const errors = result.ok
+			? { rows: await store.foodErrors(userId, result.value) }
+			: result.errors;
+		if (!result.ok || Object.keys(errors.rows ?? {}).length > 0) {
 			const values: RecipeFormValues = result.values;
 			return fail(400, {
 				review: {
@@ -141,13 +172,15 @@ export const actions = {
 						needsCheck: values.ingredients.filter((row) => rowStatus(row) === 'check').length,
 						droppedIngredients: 0,
 						droppedSteps: 0,
-						truncated: false
-					} satisfies ReviewInfo
+						truncated: false,
+						matching: null
+					} satisfies ReviewInfo,
+					foodNutrition: await nutritionOf(userId, values)
 				},
-				errors: result.errors
+				errors: result.ok ? { ...errors, ingredients: 'Fix the highlighted ingredients.' } : errors
 			});
 		}
-		const id = await getRecipeStore().create(userId, result.value);
+		const id = await store.create(userId, result.value);
 		throw redirect(303, `/recipes/${id}`);
 	}
 };

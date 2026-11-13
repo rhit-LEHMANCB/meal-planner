@@ -22,8 +22,8 @@ Ships in the same production release as `nutrition` (PR #47). The change name so
 
 ## 4. Import flow
 
-- [ ] 4.1 `makeImporter`: after a successful parse from any source, `reserveMatch` then `matchRows`; carry `matches` and `matching` status (`matched` / `limit` / `unavailable` / `none`); refund when the call never reached the model. Verify `import.spec.ts`: structured link matched without `reserveAi`, cap reached gives `limit` with the draft intact, matching failure gives `unavailable` with the draft intact.
-- [ ] 4.2 Import route `respond`: apply matches to form values, add `matching` to `ReviewInfo`, send `foodNutrition`. Verify `import.spec.ts` route cases.
+- [x] 4.1 `makeImporter`: after a successful parse from any source, `reserveMatch` then `matchRows`; carry `matches` and `matching` status (`matched` / `limit` / `unavailable` / `none`); refund when the call never reached the model. Verify `import.spec.ts`: structured link matched without `reserveAi`, cap reached gives `limit` with the draft intact, matching failure gives `unavailable` with the draft intact.
+- [x] 4.2 Import route `respond`: apply matches to form values, add `matching` to `ReviewInfo`, send `foodNutrition`. Verify `import.spec.ts` route cases.
 
 ## 5. UI
 
