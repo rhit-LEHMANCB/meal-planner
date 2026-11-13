@@ -1,7 +1,7 @@
 # Lifecycle: nutrition
 
 - Branch: `claude/dev-lifecycle-nutrition-3caa7b`
-- Stage: 2 Propose + preflight
+- Stage: 3 Implement
 - Review round: 0 of 3
 - QA cycle: 0 of 3
 - Started: 2026-11-12
@@ -44,8 +44,8 @@ Approved: yes (user confirmed 2026-11-12)
 
 ## Gate A
 
-Approved: no
-Accepted preflight gaps: none
+Approved: yes, 2026-11-12 (user: "Approve, accept gap")
+Accepted preflight gaps: local Node 22 instead of 24 (CI and App Hosting use 24)
 
 ## Preflight
 
