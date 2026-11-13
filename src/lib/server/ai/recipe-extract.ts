@@ -9,7 +9,7 @@ const MODEL = 'claude-haiku-5-5';
 
 // Built on first use because the key is a runtime secret. Retries are ours (see extractRecipe).
 let client: Anthropic | undefined;
-const getClient = () =>
+export const getClient = () =>
 	(client ??= new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 0, timeout: 45_000 }));
 
 const SYSTEM = `You transcribe recipes into structured data by calling the save_recipe tool.

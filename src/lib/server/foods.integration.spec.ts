@@ -114,6 +114,11 @@ describe.skipIf(!url)('food store (Neon dev branch)', () => {
 		expect((await store.nutritionFor(bob, [own])).size).toBe(0);
 	});
 
+	it('caps a search at the limit asked for', async () => {
+		expect((await store.search(alice, 'rice', 3)).length).toBe(3);
+		expect((await store.search(alice, 'rice', 500)).length).toBeLessThanOrEqual(SEARCH_LIMIT);
+	});
+
 	it('returns nothing for a blank query or a malformed id', async () => {
 		expect(await store.search(alice, '   ')).toEqual([]);
 		expect(await store.get(alice, 'not-a-uuid')).toBeNull();

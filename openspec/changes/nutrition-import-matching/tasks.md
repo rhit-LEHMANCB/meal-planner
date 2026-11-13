@@ -15,9 +15,9 @@ Ships in the same production release as `nutrition` (PR #47). The change name so
 
 ## 3. Server
 
-- [ ] 3.1 `import-usage.ts`: `reserveMatch`, `refundMatch`, `DAILY_AI_MATCHES = 50`. Verify `import-usage.integration.spec.ts` on dev: 50 allowed then refused, new UTC day resets, per user, AI import counts untouched.
-- [ ] 3.2 `FoodStore.search` optional `limit`; `/plan/foods` results add `per100g` and `unitGrams`. Verify the foods integration spec and that the plan Add dialog specs still pass.
-- [ ] 3.3 `src/lib/server/ai/food-match.ts`: candidate search (8 per row, 100 rows, 8 concurrent), `save_matches` tool call to `claude-haiku-5-5` with per-request keys, lenient salvage, 30 s timeout, error classification (reached model or not). Verify a unit spec with a fake client: keys map to the right foods, unknown keys and rows are dropped, out-of-range grams are dropped by `applyMatches`, a thrown error gives `unavailable`, the prompt puts rows and candidate names inside the data block.
+- [x] 3.1 `import-usage.ts`: `reserveMatch`, `refundMatch`, `DAILY_AI_MATCHES = 50`. Verify `import-usage.integration.spec.ts` on dev: 50 allowed then refused, new UTC day resets, per user, AI import counts untouched.
+- [x] 3.2 `FoodStore.search` optional `limit`; `/plan/foods` results add `per100g` and `unitGrams`. Verify the foods integration spec and that the plan Add dialog specs still pass.
+- [x] 3.3 `src/lib/server/ai/food-match.ts`: candidate search (8 per row, 100 rows, 8 concurrent), `save_matches` tool call to `claude-haiku-5-5` with per-request keys, lenient salvage, 30 s timeout, error classification (reached model or not). Verify a unit spec with a fake client: keys map to the right foods, unknown keys and rows are dropped, out-of-range grams are dropped by `applyMatches`, a thrown error gives `unavailable`, the prompt puts rows and candidate names inside the data block.
 - [x] 3.4 `RecipeStore`: save and load `grams_source`. Verify `recipes.integration.spec.ts` (an `ai` estimate survives save and reload; a `user` weight stays `user`).
 
 ## 4. Import flow
