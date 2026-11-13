@@ -1,8 +1,8 @@
 # Lifecycle: nutrition
 
 - Branch: `claude/dev-lifecycle-nutrition-3caa7b`
-- Stage: 7 Production PR (Gate B)
-- Review round: 1 of 3
+- Stage: 5 Ship to develop (Gate B fix)
+- Review round: 2 of 3
 - QA cycle: 1 of 3
 - Started: 2026-11-12
 
@@ -70,6 +70,7 @@ Stage 3 done 2026-11-12: all 22 tasks ticked. lint, check, 652 tests (integratio
 
 ## Review rounds
 
+- Round 2 (2026-11-13, Gate B fix, fresh Sonnet reviewer): 0 blockers, 0 majors, 2 minors, 2 nits. Fixed: the same glued "· partial" on the Today card, a less markup-bound caption test, and the non-breaking space written as an escape.
 - Round 1 (2026-11-12, fresh Sonnet reviewer): 0 blockers, 0 majors, 4 minors, 2 nits. Exit condition met. Fixed anyway (trivial): inherited object keys as units (`Object.hasOwn` in `toGrams` and `log`, non-finite grams refused), oversized log entries refused before the insert (`too_large`), plan load test that logs never reach day totals, `logged_at` documented in design/proposal, script name in design/tasks.
 
 ## Deferred findings
@@ -98,7 +99,11 @@ QA cycle 1 of 3, 2026-11-13T01:57Z, independent Sonnet QA agent, deployed commit
   5. Nothing says the default goals are defaults until they are saved.
 - QA data: all `qa-` recipes, plan and log entries were removed. Custom foods `qa-nut-*` (5) and a goals row for the QA user remain, because custom foods cannot be deleted in the UI (#32). The setup also removed older `qa-*` recipes of the QA user left by other suites.
 
-## Verification checklist for the human
+## Gate B defect (2026-11-13)
+
+The human found at Gate B that the chart's screen-reader table caption ("Calories by day, week of …") renders on top of the "Calories by day" heading. Cause: `sr-only` was on the `<table>`, but a table caption is laid out outside the table box, so it was not clipped. This was also the ~15 px sideways scroll QA noted at 390 px. Fix on branch `fix/nutrition-chart-caption`: wrap the table in an `sr-only` div. Also fixed the "kcal· partial" spacing on plan day totals (QA observation 2). Classified `app bug`: stages 3 to 5 with one review round, then QA cycle 2.
+
+
 
 Ranked by risk. Production-only risks are listed first.
 

@@ -73,6 +73,21 @@ describe('nutrition page', () => {
 		expect(out).toContain('Partial: some ingredients or entries that day have no nutrition');
 	});
 
+	it('spaces the partial note on the today card', () => {
+		const out = page([planned(TUE, 800, true)]);
+		// Hydration markers may sit between the text and the span; the space must be inside it.
+		expect(out).toMatch(/so far(<!--[^>]*-->)*<span class="font-medium">\s· partial<\/span>/);
+	});
+
+	it('hides the screen-reader table, caption included, inside an sr-only wrapper', () => {
+		const out = page([planned(MON, 800)]);
+		// sr-only on the table itself leaves its caption visible on top of the heading.
+		expect(out).toMatch(
+			/<div[^>]*class="[^"]*\bsr-only\b[^"]*"[^>]*>\s*<table[^>]*>\s*<caption>Calories by day/
+		);
+		expect(out).not.toMatch(/<table[^>]*sr-only/);
+	});
+
 	it('posts forms with the week and credits USDA', () => {
 		const out = page([]);
 		expect(out).toContain(`action="?week=${MON}&amp;/log"`);
