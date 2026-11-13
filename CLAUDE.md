@@ -7,7 +7,7 @@ Meal planning app: AI recipe import, a weekly plan with leftovers, grocery lists
 - SvelteKit 2 (Svelte 5 runes) with `adapter-node`, Tailwind 4. `adapter-node` 6 needs SvelteKit 3, so upgrade both together; App Hosting runs a plain Node server, so there is no hosting-wrapper constraint any more. Path alias is `$lib`. Public config uses `$env/static/public`. Secrets use `$env/dynamic/private` and are read lazily (`getDb()`, `getAdminAuth()`), because they only exist at runtime on App Hosting.
 - Firebase App Hosting (Cloud Run, built from GitHub on push to `production`) for SSR, and Firebase Auth for sign-in only. Config is in `apphosting.yaml` and `firebase.json`.
 - Neon Postgres through Drizzle. Schema in `src/lib/server/db/schema.ts`. Every user-data row has a `user_id` (the Firebase uid) and every query must filter by it. There are no database security rules.
-- Anthropic API for recipe parsing (`src/lib/server/ai`). The model parses and matches only. Calorie and macro numbers always come from the `foods` table, never from the model.
+- Anthropic API for recipe parsing and food matching (`src/lib/server/ai`). The model parses, chooses among candidate foods the server offers, and estimates weights in grams (always marked as estimates). Calorie and macro numbers per 100 g always come from the `foods` table, never from the model.
 
 ## Rules
 
@@ -40,19 +40,26 @@ Mockups: https://claude.ai/artifact/LZ2eJMT726E4PtF5XzNMd5 (weekly plan, import 
   - **food:** `food_id`, `quantity`, `unit` (`g` or one of the food's `food_units`).
 - `leftover_batches.servings_remaining` is the batch's **free** servings (spare minus drawn). Change it only with a single SQL statement whose WHERE re-checks it (see `src/lib/server/plan.ts`), never read-then-write, so concurrent draws cannot over-plan a batch.
 - Routes use `getPlanStore()` and `getFoodStore()` (owner id on every method). `planned_meals` has no `user_id`: filter through `meal_plans.user_id`. Foods are visible when `user_id` is the user's or null (shared).
-- Recipe delete (`RecipeStore.remove`) is the one place outside the plan store that writes plan tables: it removes the recipe's planned meals and batches in the same batch.
+- Recipe delete (`RecipeStore.remove`) is the one place outside the plan store that writes plan tables: it removes the recipe's planned meals and batches in the same batch, and clears `food_log.recipe_id` on log entries of it (they keep their numbers).
 - Food search is `GET /plan/foods?q=`, deliberately not under `/api/*`, which is public.
 
 ## Grocery list
 
 - `/grocery?week=<Monday>` is rebuilt from the plan on every load and never stored. Sources: each cook's ingredients scaled by the batch's `servings_cooked / recipes.servings`, and each food entry in its planned amount and unit. Leftovers are never loaded, so they add nothing.
-- Items merge by `nameKey` (lowercase, collapsed spaces; no plural matching) and amounts add per normalized unit; different units show side by side. Merging, rounding (count units round up), ticks and aisles are pure: `grocery.ts`, `grocery-view.ts`, `aisles.ts` in `src/lib/domain`. Ingredients are not linked to foods yet, so nothing here uses grams or `foods` macros.
+- Items merge by `nameKey` (lowercase, collapsed spaces; no plural matching) and amounts add per normalized unit; different units show side by side. Merging, rounding (count units round up), ticks and aisles are pure: `grocery.ts`, `grocery-view.ts`, `aisles.ts` in `src/lib/domain`. Ingredients can be linked to foods (for nutrition), but the grocery list still merges by name and uses no grams or `foods` macros.
 - Stored state only, through `getGroceryStore()` (`src/lib/server/grocery.ts`, owner id on every method; lists are owned through `grocery_lists.plan_id → meal_plans.user_id`):
   - a tick is a `grocery_items` row with `item_key` and `ticked_amount` (the amounts when ticked, computed on the server). An item that needs more than its tick covers shows unticked with "More needed since you ticked it".
   - extra items are `grocery_items` rows with `is_extra` (max 100 per week, checked in the insert statement).
   - `grocery_aisle_choices` remembers a user's aisle per name key across weeks.
 - Grocery forms post to `?week=<Monday>&/name` (a bare `?/name` drops the week, so a no-JS submit would reload the wrong week) and also send a hidden `week` field; `tick` and `add`, the actions that write to a week, refuse it unless it is a Monday.
 - `pantry_items`, `grocery_items.food_id`, `aisle` and `for_meals` are unused for now.
+
+## Nutrition
+
+- Shared foods are USDA FoodData Central SR Legacy (7,793 foods, `source = 'usda'`, `source_id` = FDC id, unique on `(source, source_id)`), with household portions as `food_units`. They arrive through the generated data migration `drizzle/0006_usda_sr_legacy.sql`; regenerate with `scripts/usda/build-seed.ts` (see `scripts/usda/README.md`), never by hand. Search stems plurals (`food-match.ts`) and ranks own foods, then names starting with the first word, then shorter names.
+- Ingredient rows link to a food with `recipe_ingredients.food_id` and may carry `grams` for an amount that does not convert. The add and edit forms (`IngredientRows` with `nutrition`) suggest a food per unlinked row via `GET /recipes/food-suggestions` (signed in, max 50 names); nothing is linked until the user accepts and saves. The import review also arrives with AI matches (see Recipe import). `RecipeStore.foodErrors` refuses foods the user cannot see, and saves drop such links anyway.
+- All math is pure in `src/lib/domain/nutrition.ts`: weight = weight unit, else the food's unit (no unit = `each`), else the row's grams; recipe per serving = linked rows / servings, partial when any named row has no food or weight; cook = eaten × per serving, leftover = drawn × per serving, food entry = grams × per 100 g. Planned numbers are always live; only `food_log` rows are snapshotted (with `logged_at` for order).
+- `getNutritionStore()` (`src/lib/server/nutrition.ts`, owner id on every method) computes planned nutrition for entries from the plan store, and reads and writes the log and `nutrition_goals` (defaults 2000 / 140 / 230 / 70 when no row). `/nutrition?week=<Monday>` and the plan's day totals use it; nutrition forms post to `?week=<Monday>&/name` like the grocery page.
 
 ## Recipe import
 
@@ -61,6 +68,8 @@ Mockups: https://claude.ai/artifact/LZ2eJMT726E4PtF5XzNMd5 (weekly plan, import 
 - Limits (`src/lib/server/import-usage.ts`, table `import_usage`, one row per user): 20 AI imports per user per UTC day, 10 s between imports, pasted text max 20,000 chars, photos max 5 MB (shrunk to 1600 px in the browser; `BODY_SIZE_LIMIT=6M` in `apphosting.yaml`). A reserved AI import is refunded only if the request never reached the model.
 - Photos are sniffed by their bytes (JPEG, PNG, WebP), sent to the model and never stored or logged.
 - The model (`claude-haiku-5-5`) output is salvaged field by field (`salvageRecipe`); missing servings stay blank, never guessed.
+- AI food matching (`src/lib/server/ai/food-match.ts`) runs after every successful import, structured links included, and on the edit form's "Match with AI" (`POST /recipes/food-match`, not under `/api/*`). The server searches up to 8 candidates per row (first 100 rows) and the model answers with per-request keys (`r3c1`), so only offered foods can be linked. `applyMatches` (`src/lib/domain/food-match.ts`) sets a food only on unlinked, uncleared rows and keeps a weight estimate (0 < g ≤ 5000) only where the amount does not convert. Estimates are stored as `recipe_ingredients.grams_source = 'ai'` and shown as "AI estimate" until the user edits them; the recipe page counts them. The review is `RecipeForm` with `nutrition` and `preview` (per-serving preview in the browser from `foodNutrition`).
+- Matching has its own cap: 50 runs per user per UTC day (`import_usage.match_count` / `match_day`, `reserveMatch`), separate from the 20 AI imports, and shares the 10 s spacing. Over the cap or on any AI failure the import still reaches the review without matches.
 - Integration tests (`recipes.integration.spec.ts`) run when `TEST_DATABASE_URL` points at the Neon `dev` branch and are skipped otherwise. They clean up their own rows.
 - Drizzle prints a bare column name in single-table queries, so a correlated subquery must write the outer table's name out by hand.
 

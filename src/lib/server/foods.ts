@@ -1,4 +1,6 @@
 import { and, asc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm';
+import { searchStem, suggestQuery } from '$lib/domain/food-match';
+import type { FoodNutrition } from '$lib/domain/nutrition';
 import type { NewFoodInput } from '$lib/domain/plan-form';
 import { getDb, type Db } from './db';
 import { foodUnits, foods } from './db/schema';
@@ -55,17 +57,96 @@ export const makeFoodStore = (db: Db) => {
 	};
 
 	return {
-		/** Own and shared foods whose name contains every word of `query`, own first, at most 20. */
-		async search(userId: string, query: string): Promise<FoodOption[]> {
-			const words = query.trim().split(/\s+/).filter(Boolean);
-			if (words.length === 0) return [];
+		/**
+		 * Own and shared foods whose name contains every word of `query` (singular or plural), at
+		 * most 20: own first, then names starting with the first word, then shorter names, then by name.
+		 */
+		async search(userId: string, query: string, limit = SEARCH_LIMIT): Promise<FoodOption[]> {
+			const stems = query
+				.trim()
+				.split(/\s+/)
+				.filter(Boolean)
+				.map((w) => escapeLike(searchStem(w)));
+			if (stems.length === 0) return [];
 			const rows = await db
 				.select({ id: foods.id, name: foods.name, userId: foods.userId })
 				.from(foods)
-				.where(and(visible(userId), ...words.map((w) => ilike(foods.name, `%${escapeLike(w)}%`))))
-				.orderBy(sql`${foods.userId} is null`, asc(foods.name))
-				.limit(SEARCH_LIMIT);
+				.where(and(visible(userId), ...stems.map((w) => ilike(foods.name, `%${w}%`))))
+				.orderBy(
+					sql`${foods.userId} is null`,
+					sql`${foods.name} ilike ${`${stems[0]}%`} desc`,
+					sql`length(${foods.name})`,
+					asc(foods.name)
+				)
+				.limit(Math.min(Math.max(1, limit), SEARCH_LIMIT));
 			return withUnits(rows);
+		},
+
+		/** The foods among `ids` the user can see, with their units. */
+		async getMany(userId: string, ids: string[]): Promise<FoodOption[]> {
+			const unique = [...new Set(ids)].filter((id) => UUID.test(id));
+			if (unique.length === 0) return [];
+			const rows = await db
+				.select({ id: foods.id, name: foods.name, userId: foods.userId })
+				.from(foods)
+				.where(and(inArray(foods.id, unique), visible(userId)));
+			return withUnits(rows);
+		},
+
+		/**
+		 * The best food for each ingredient name (the top search hit for its `suggestQuery`), or null.
+		 * Names are searched one by one; callers cap how many.
+		 */
+		async suggest(userId: string, names: string[]): Promise<(FoodOption | null)[]> {
+			return Promise.all(
+				names.map(async (name) => {
+					const query = suggestQuery(name);
+					if (!query) return null;
+					const [best] = await this.search(userId, query);
+					return best ?? null;
+				})
+			);
+		},
+
+		/** Per-100 g numbers and unit weights for the foods among `ids` the user can see. */
+		async nutritionFor(userId: string, ids: string[]): Promise<Map<string, FoodNutrition>> {
+			const unique = [...new Set(ids)].filter((id) => UUID.test(id));
+			const map = new Map<string, FoodNutrition>();
+			if (unique.length === 0) return map;
+			const rows = await db
+				.select({
+					id: foods.id,
+					kcal: foods.kcalPer100g,
+					protein: foods.proteinPer100g,
+					carbs: foods.carbsPer100g,
+					fat: foods.fatPer100g
+				})
+				.from(foods)
+				.where(and(inArray(foods.id, unique), visible(userId)));
+			const units = rows.length
+				? await db
+						.select({ foodId: foodUnits.foodId, unit: foodUnits.unit, grams: foodUnits.grams })
+						.from(foodUnits)
+						.where(
+							inArray(
+								foodUnits.foodId,
+								rows.map((r) => r.id)
+							)
+						)
+				: [];
+			for (const r of rows) {
+				map.set(r.id, {
+					id: r.id,
+					kcalPer100g: Number(r.kcal),
+					proteinPer100g: Number(r.protein),
+					carbsPer100g: Number(r.carbs),
+					fatPer100g: Number(r.fat),
+					units: Object.fromEntries(
+						units.filter((u) => u.foodId === r.id).map((u) => [u.unit, Number(u.grams)])
+					)
+				});
+			}
+			return map;
 		},
 
 		async get(userId: string, id: string): Promise<FoodOption | null> {
@@ -88,5 +169,21 @@ export const makeFoodStore = (db: Db) => {
 };
 
 export type FoodStore = ReturnType<typeof makeFoodStore>;
+
+/** A search result plus its numbers, so the browser can preview nutrition. */
+export type FoodWithNutrition = FoodOption & { nutrition: FoodNutrition | null };
+
+/** Attaches per-100 g numbers and unit weights to foods (one query for all of them). */
+export const withNutrition = async (
+	store: FoodStore,
+	userId: string,
+	options: FoodOption[]
+): Promise<FoodWithNutrition[]> => {
+	const numbers = await store.nutritionFor(
+		userId,
+		options.map((o) => o.id)
+	);
+	return options.map((o) => ({ ...o, nutrition: numbers.get(o.id) ?? null }));
+};
 
 export const getFoodStore = (): FoodStore => makeFoodStore(getDb());

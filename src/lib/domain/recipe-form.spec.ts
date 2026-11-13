@@ -20,6 +20,11 @@ const form = (fields: Record<string, string>, rows: Row[] = []) => {
 		data.append('ingredientUnit', row.unit ?? '');
 		data.append('ingredientName', row.name ?? '');
 		data.append('ingredientNote', row.note ?? '');
+		data.append('ingredientFoodId', row.foodId ?? '');
+		data.append('ingredientFoodName', row.foodName ?? '');
+		data.append('ingredientGrams', row.grams ?? '');
+		data.append('ingredientGramsSource', row.gramsSource ?? '');
+		data.append('ingredientFoodMatch', row.foodMatch ?? '');
 	}
 	return data;
 };
@@ -49,7 +54,7 @@ describe('parseLines', () => {
 describe('parseRecipeForm', () => {
 	it('accepts a complete recipe with structured rows', () => {
 		const result = parseRecipeForm(form(valid, [turkey, onion]));
-		expect(result).toEqual({
+		expect(result).toMatchObject({
 			ok: true,
 			value: {
 				title: 'Turkey Chili',
@@ -81,7 +86,7 @@ describe('parseRecipeForm', () => {
 
 	it('accepts a recipe with only a title and servings', () => {
 		const result = parseRecipeForm(form({ title: 'Toast', servings: '1' }));
-		expect(result).toEqual({
+		expect(result).toMatchObject({
 			ok: true,
 			value: {
 				title: 'Toast',
@@ -265,7 +270,7 @@ describe('parseRecipeForm', () => {
 				'servings',
 				'title'
 			]);
-			expect(result.values.ingredients).toEqual([
+			expect(result.values.ingredients).toMatchObject([
 				{ raw: '1 lb ground turkey', amount: '1', unit: 'lb', name: 'ground turkey', note: '' },
 				{ raw: '', amount: 'lots', unit: '', name: 'beans', note: '' }
 			]);
@@ -320,7 +325,7 @@ describe('recipeToFormValues', () => {
 				}
 			]
 		});
-		expect(values).toEqual({
+		expect(values).toMatchObject({
 			title: 'Turkey Chili',
 			servings: '6',
 			totalMinutes: '',
@@ -339,7 +344,7 @@ describe('recipeToFormValues', () => {
 		});
 
 		const saved = parseRecipeForm(formFromValues(values));
-		expect(saved.ok && saved.value.ingredients).toEqual([
+		expect(saved.ok && saved.value.ingredients).toMatchObject([
 			{
 				rawText: '1 can (15 oz) beans, drained',
 				quantity: 1,
@@ -373,8 +378,121 @@ describe('recipeToFormValues', () => {
 				}
 			]
 		});
-		expect(values.ingredients).toEqual([
+		expect(values.ingredients).toMatchObject([
 			{ raw: '1 cup rice', amount: '1', unit: 'cup', name: 'rice', note: '' }
+		]);
+	});
+});
+
+describe('food links on rows', () => {
+	const FOOD = '6f6b8fba-1e0c-574a-933e-6bf1249a981c';
+	const cilantro: Row = { amount: '1', unit: 'bunch', name: 'cilantro', foodId: FOOD };
+
+	it('keeps a linked food and its grams', () => {
+		const r = parseRecipeForm(form(valid, [{ ...cilantro, grams: '60' }, turkey]));
+		expect(r.ok && r.value.ingredients.map((i) => [i.foodId, i.grams])).toEqual([
+			[FOOD, 60],
+			[null, null]
+		]);
+	});
+
+	it('drops grams on a row with no food', () => {
+		const r = parseRecipeForm(form(valid, [{ ...turkey, grams: '60' }]));
+		expect(r.ok && r.value.ingredients[0].grams).toBeNull();
+	});
+
+	it.each(['-5', '0', 'lots', '100001'])('rejects a weight of %j on the row', (grams) => {
+		const r = parseRecipeForm(form(valid, [{ ...cilantro, grams }]));
+		expect(r.ok).toBe(false);
+		if (!r.ok) {
+			expect(r.errors.rows?.[0]?.grams).toBe('Weight must be more than 0 g, up to 100,000 g.');
+			expect(r.values.ingredients[0]).toMatchObject({ foodId: FOOD, grams });
+		}
+	});
+
+	it('keeps an AI estimate marker only with a weight on a linked row', () => {
+		const r = parseRecipeForm(
+			form(valid, [
+				{ ...cilantro, grams: '60', gramsSource: 'ai' },
+				{ ...cilantro, grams: '60' },
+				{ ...cilantro, grams: '', gramsSource: 'ai' },
+				{ ...turkey, grams: '60', gramsSource: 'ai' }
+			])
+		);
+		expect(r.ok && r.value.ingredients.map((i) => i.gramsSource)).toEqual([
+			'ai',
+			'user',
+			null,
+			null
+		]);
+		expect(r.ok && r.values.ingredients[0]).toMatchObject({ gramsSource: 'ai' });
+	});
+
+	it('refills a saved AI estimate as an estimate', () => {
+		const values = recipeToFormValues({
+			title: 'x',
+			servings: 1,
+			totalMinutes: null,
+			sourceUrl: null,
+			instructions: [],
+			ingredients: [
+				{
+					rawText: 'salt',
+					quantity: null,
+					unit: null,
+					name: 'salt',
+					note: null,
+					status: 'skipped',
+					foodId: FOOD,
+					foodName: 'Salt',
+					grams: 2,
+					gramsSource: 'ai'
+				}
+			]
+		});
+		expect(values.ingredients[0]).toMatchObject({ grams: '2', gramsSource: 'ai' });
+	});
+
+	it('rejects a food id that is not an id', () => {
+		const r = parseRecipeForm(form(valid, [{ ...cilantro, foodId: 'nope' }]));
+		expect(!r.ok && r.errors.rows?.[0]?.food).toBe('That food was not found. Pick another one.');
+	});
+
+	it('refills the form with the link from a saved row the user can see', () => {
+		const values = recipeToFormValues({
+			title: 'x',
+			servings: 1,
+			totalMinutes: null,
+			sourceUrl: null,
+			instructions: [],
+			ingredients: [
+				{
+					rawText: '1 bunch cilantro',
+					quantity: 1,
+					unit: 'bunch',
+					name: 'cilantro',
+					note: null,
+					status: 'parsed',
+					foodId: FOOD,
+					foodName: 'Coriander (cilantro) leaves, raw',
+					grams: 60
+				},
+				{
+					rawText: '1 cup rice',
+					quantity: 1,
+					unit: 'cup',
+					name: 'rice',
+					note: null,
+					status: 'parsed',
+					foodId: FOOD,
+					foodName: null,
+					grams: null
+				}
+			]
+		});
+		expect(values.ingredients.map((i) => [i.foodId, i.foodName, i.grams])).toEqual([
+			[FOOD, 'Coriander (cilantro) leaves, raw', '60'],
+			['', '', '']
 		]);
 	});
 });

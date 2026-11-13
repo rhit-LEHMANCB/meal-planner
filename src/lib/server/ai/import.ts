@@ -1,6 +1,9 @@
+import type { RowMatch } from '$lib/domain/food-match';
 import type { ImportDraft } from '$lib/domain/recipe-import';
+import { getFoodStore } from '../foods';
 import { recipeFromJsonLd } from '$lib/domain/schema-org-recipe';
 import { getImportUsage, type ImportUsage } from '../import-usage';
+import { makeFoodMatcher, type FoodMatcher, type MatchStatus } from './food-match';
 import { pageText, PAGE_TEXT_MIN } from './page-text';
 import {
 	ExtractError,
@@ -42,6 +45,9 @@ export type ImportResult =
 			droppedIngredients: number;
 			droppedSteps: number;
 			truncated: boolean;
+			/** AI food matching of the draft's rows (by index); never blocks the import. */
+			matching: MatchStatus;
+			matches: RowMatch[];
 	  }
 	| { ok: false; reason: ImportFailure };
 
@@ -49,7 +55,11 @@ export interface ImporterDeps {
 	usage: Pick<ImportUsage, 'startImport' | 'reserveAi' | 'refundAi'>;
 	fetchPage: (url: string) => Promise<FetchedPage>;
 	extract: typeof extractRecipe;
+	/** Links the draft's rows to foods. Left out, imports are not matched. */
+	matcher?: Pick<FoodMatcher, 'match'>;
 }
+
+type Parsed = Omit<Extract<ImportResult, { ok: true }>, 'matching' | 'matches'>;
 
 const fail = (reason: ImportFailure): ImportResult => ({ ok: false, reason });
 
@@ -80,15 +90,37 @@ const cleanSourceUrl = (value: string | null): string | null => {
  * saved: the result is a draft for the review screen.
  */
 export const makeImporter = (deps: ImporterDeps) => {
+	/** Adds AI food matches to a parsed draft. Matching problems never fail the import. */
+	const matched = async (userId: string, parsed: Parsed): Promise<ImportResult> => {
+		if (!deps.matcher) return { ...parsed, matching: 'none', matches: [] };
+		try {
+			const outcome = await deps.matcher.match(
+				userId,
+				parsed.draft.ingredients.map((line, index) => ({
+					index,
+					line: line.raw,
+					name: line.name,
+					quantity: line.quantity,
+					unit: line.unit
+				}))
+			);
+			return { ...parsed, matching: outcome.status, matches: outcome.matches };
+		} catch (error) {
+			console.error('Food matching failed:', (error as Error)?.message);
+			return { ...parsed, matching: 'unavailable', matches: [] };
+		}
+	};
+
 	const withAi = async (
 		userId: string,
 		source: ExtractSource,
 		sourceUrl: string | null
 	): Promise<ImportResult> => {
 		if (!(await deps.usage.reserveAi(userId))) return fail('daily-limit');
+		let parsed: Parsed;
 		try {
 			const result = await deps.extract(source, sourceUrl);
-			return { ok: true, via: 'ai', ...result };
+			parsed = { ok: true, via: 'ai', ...result };
 		} catch (error) {
 			if (!(error instanceof ExtractError)) {
 				// A bug after the call; the model may have been reached, so the slot is kept.
@@ -100,6 +132,7 @@ export const makeImporter = (deps: ImporterDeps) => {
 			if (!error.reachedModel) await deps.usage.refundAi(userId);
 			return fail(error.reason);
 		}
+		return matched(userId, parsed);
 	};
 
 	return {
@@ -124,14 +157,14 @@ export const makeImporter = (deps: ImporterDeps) => {
 			const jsonLd = findRecipeJsonLd(page.html);
 			const structured = jsonLd ? recipeFromJsonLd(jsonLd, sourceUrl) : null;
 			if (structured) {
-				return {
+				return matched(userId, {
 					ok: true,
 					via: 'structured',
 					draft: structured,
 					droppedIngredients: 0,
 					droppedSteps: 0,
 					truncated: false
-				};
+				});
 			}
 
 			const text = pageText(page.html);
@@ -168,5 +201,6 @@ export const getImporter = (): Importer =>
 	makeImporter({
 		usage: getImportUsage(),
 		fetchPage: (url) => safeFetch(url),
-		extract: extractRecipe
+		extract: extractRecipe,
+		matcher: makeFoodMatcher({ foods: getFoodStore(), usage: getImportUsage() })
 	});

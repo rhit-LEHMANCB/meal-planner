@@ -1,5 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { formatServings } from '$lib/domain/format';
+import { dayTotals } from '$lib/domain/nutrition';
 import { isIsoDate, parseWeekParam, todayIso, weekDays } from '$lib/domain/plan';
 import {
 	parseCookForm,
@@ -8,6 +9,7 @@ import {
 	parseLeftoverForm
 } from '$lib/domain/plan-form';
 import { requireUserId } from '$lib/server/auth';
+import { getNutritionStore } from '$lib/server/nutrition';
 import { getPlanStore, type PlanResult } from '$lib/server/plan';
 import { getRecipeStore } from '$lib/server/recipes';
 
@@ -24,10 +26,18 @@ export const load = async ({ locals, url }) => {
 		getRecipeStore().list(userId),
 		plan.listBatches(userId, today)
 	]);
+	const days = weekDays(monday);
+	const planned = await getNutritionStore().plannedNutrition(userId, entries);
+	const dayKcal = Object.fromEntries(
+		dayTotals(days, planned, [])
+			.filter((d) => d.hasEntries)
+			.map((d) => [d.date, { kcal: d.total.kcal, partial: d.partial }])
+	);
 
 	return {
 		monday,
-		days: weekDays(monday),
+		days,
+		dayKcal,
 		today,
 		/** False when the week came from the server's (UTC) date, so the browser may correct it. */
 		explicitWeek: isIsoDate(week),

@@ -124,10 +124,26 @@
 	</div>
 
 	<div class="hidden md:block">
-		<WeekGrid days={data.days} {today} {entriesIn} {onadd} {onedit} {onneedsconfirm} />
+		<WeekGrid
+			days={data.days}
+			{today}
+			{entriesIn}
+			{onadd}
+			{onedit}
+			{onneedsconfirm}
+			dayKcal={data.dayKcal}
+		/>
 	</div>
 	<div class="md:hidden">
-		<DayList days={data.days} {today} {entriesIn} {onadd} {onedit} {onneedsconfirm} />
+		<DayList
+			days={data.days}
+			{today}
+			{entriesIn}
+			{onadd}
+			{onedit}
+			{onneedsconfirm}
+			dayKcal={data.dayKcal}
+		/>
 	</div>
 
 	<div class="flex flex-wrap gap-5">

@@ -243,3 +243,71 @@ describe('sniffImage', () => {
 		expect(sniffImage(new TextEncoder().encode('ftypheic'))).toBeNull();
 	});
 });
+
+describe('food matching during import', () => {
+	const withMatcher = (match: ReturnType<typeof vi.fn>) => {
+		const base = setup();
+		return {
+			...base,
+			match,
+			importer: makeImporter({
+				usage: base.usage,
+				fetchPage: base.fetchPage,
+				extract: base.extract,
+				matcher: { match } as never
+			})
+		};
+	};
+	const onion = { id: 'f-onion', name: 'Onions, raw', units: ['g', 'each'] };
+
+	it('matches a structured-data link without taking an AI import', async () => {
+		const match = vi.fn(async () => ({
+			status: 'matched',
+			matches: [{ index: 0, food: onion, grams: null }]
+		}));
+		const m = withMatcher(match);
+		m.fetchPage.mockResolvedValue({ url: 'https://example.com/r', html: jsonLdPage });
+		const result = await m.importer.fromLink(USER, 'https://example.com/r');
+		expect(result).toMatchObject({
+			ok: true,
+			via: 'structured',
+			matching: 'matched',
+			matches: [{ index: 0, food: onion }]
+		});
+		expect(m.usage.reserveAi).not.toHaveBeenCalled();
+		expect(match).toHaveBeenCalledWith(USER, [
+			{ index: 0, line: '1 lb turkey', name: 'turkey', quantity: 1, unit: 'lb' }
+		]);
+	});
+
+	it('keeps the parsed draft when matching hits its cap or fails', async () => {
+		for (const outcome of [
+			async () => ({ status: 'limit', matches: [] }),
+			async () => {
+				throw new Error('boom');
+			}
+		]) {
+			const m = withMatcher(vi.fn(outcome));
+			const result = await m.importer.fromText(USER, 'Soup\n1 onion\nBoil.', null);
+			expect(result).toMatchObject({ ok: true, via: 'ai', draft: { title: 'Soup' } });
+			expect(result.ok && result.matching).toBe(
+				outcome.toString().includes('limit') ? 'limit' : 'unavailable'
+			);
+		}
+	});
+
+	it('does not match when the import itself fails', async () => {
+		const m = withMatcher(vi.fn());
+		m.usage.reserveAi.mockResolvedValue(false);
+		expect(await m.importer.fromText(USER, 'Soup', null)).toEqual({
+			ok: false,
+			reason: 'daily-limit'
+		});
+		expect(m.match).not.toHaveBeenCalled();
+	});
+
+	it('reports no matching without a matcher', async () => {
+		const result = await setup().importer.fromText(USER, 'Soup', null);
+		expect(result).toMatchObject({ ok: true, matching: 'none', matches: [] });
+	});
+});

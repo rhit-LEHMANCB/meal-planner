@@ -18,5 +18,6 @@
 		errors={form?.errors}
 		submitLabel="Save recipe"
 		cancelHref="/recipes"
+		nutrition
 	/>
 </div>

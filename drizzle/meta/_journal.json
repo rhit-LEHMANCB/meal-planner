@@ -36,6 +36,34 @@
       "when": 1794276048200,
       "tag": "0004_unusual_whizzer",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794529957356,
+      "tag": "0005_nappy_trish_tilby",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794530058944,
+      "tag": "0006_usda_sr_legacy",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794531298779,
+      "tag": "0007_spotty_dazzler",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794542621065,
+      "tag": "0008_outgoing_captain_universe",
+      "breakpoints": true
     }
   ]
 }

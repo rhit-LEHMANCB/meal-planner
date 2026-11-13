@@ -116,6 +116,83 @@ describe('recipe detail', () => {
 		expect(out).not.toContain('target="_blank"');
 	});
 
+	const per = { kcal: 412.4, proteinG: 31.6, carbsG: 20.2, fatG: 9 };
+
+	it('shows nutrition per serving and which ingredients count', () => {
+		const out = html(DetailPage, {
+			data: {
+				recipe,
+				nutrition: {
+					perServing: per,
+					counted: 2,
+					total: 2,
+					partial: false,
+					estimated: 0,
+					rows: [true, true]
+				}
+			}
+		});
+		expect(out).toContain('Nutrition per serving');
+		expect(out).toContain('412 kcal');
+		expect(out).toContain('32 g');
+		expect(out).not.toContain('data-nutrition="partial"');
+		expect(out.match(/data-counts="true"/g)).toHaveLength(2);
+	});
+
+	it('says how many ingredients have no nutrition', () => {
+		const out = html(DetailPage, {
+			data: {
+				recipe,
+				nutrition: {
+					perServing: per,
+					counted: 1,
+					total: 2,
+					partial: true,
+					estimated: 0,
+					rows: [true, false]
+				}
+			}
+		});
+		expect(out).toContain('1 of 2 ingredients have no nutrition');
+		expect(out).toContain('No nutrition');
+	});
+
+	it('says how many weights are AI estimates', () => {
+		const out = html(DetailPage, {
+			data: {
+				recipe,
+				nutrition: {
+					perServing: per,
+					counted: 2,
+					total: 2,
+					partial: false,
+					estimated: 2,
+					rows: [true, true]
+				}
+			}
+		});
+		expect(out).toContain('Includes 2 AI-estimated weights');
+	});
+
+	it('says there is no nutrition yet when nothing is linked', () => {
+		const zero = { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0 };
+		const out = html(DetailPage, {
+			data: {
+				recipe,
+				nutrition: {
+					perServing: zero,
+					counted: 0,
+					total: 2,
+					partial: true,
+					estimated: 0,
+					rows: [false, false]
+				}
+			}
+		});
+		expect(out).toContain('No nutrition yet');
+		expect(out).not.toContain('data-nutrition="per-serving"');
+	});
+
 	it('never links to a source that is not a web address', () => {
 		const out = html(DetailPage, {
 			data: { recipe: { ...recipe, sourceUrl: 'javascript:alert(1)' } }

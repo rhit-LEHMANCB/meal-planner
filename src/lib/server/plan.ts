@@ -134,6 +134,7 @@ export const makePlanStore = (db: Db) => {
 			slot: row.slot,
 			kind,
 			title: (kind === 'food' ? row.foodName : row.recipeTitle) ?? '',
+			recipeId: kind === 'food' ? null : row.recipeId,
 			servings: row.servings,
 			cooked: kind === 'cook' ? (row.cookBatchCooked ?? row.servings) : null,
 			drawn: kind === 'cook' && batchId ? (drawn.get(batchId) ?? 0) : 0,

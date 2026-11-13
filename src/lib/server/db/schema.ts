@@ -32,7 +32,12 @@ export const foods = pgTable(
 		fatPer100g: numeric('fat_per_100g', { precision: 7, scale: 2 }).notNull(),
 		aisle: text('aisle')
 	},
-	(t) => [index('foods_name_idx').on(t.name), index('foods_user_idx').on(t.userId)]
+	(t) => [
+		index('foods_name_idx').on(t.name),
+		index('foods_user_idx').on(t.userId),
+		/** One row per USDA food; custom foods have a null `source_id`, and nulls are distinct. */
+		uniqueIndex('foods_source_source_id_unique').on(t.source, t.sourceId)
+	]
 );
 
 /** Unit conversions per food: 1 cup of flour = 120 g, 1 each onion = 110 g. */
@@ -74,6 +79,10 @@ export const recipeIngredients = pgTable('recipe_ingredients', {
 	/** Plain ingredient name without amount or prep notes. Null on rows saved before structured rows. */
 	name: text('name'),
 	note: text('note'),
+	/** Weight in grams for a linked row whose amount does not convert. */
+	grams: numeric('grams', { precision: 9, scale: 2 }),
+	/** Who set `grams`: 'user' or 'ai' (an AI estimate, shown as one until the user edits it). */
+	gramsSource: text('grams_source'),
 	/**
 	 * 'parsed' | 'check' | 'skipped': drives the row chip. 'unparsed' marks rows saved as plain
 	 * text before structured rows existed; the edit form pre-fills them with the line parser.
@@ -86,7 +95,10 @@ export const importUsage = pgTable('import_usage', {
 	userId: text('user_id').primaryKey(),
 	day: date('day').notNull(),
 	aiCount: integer('ai_count').notNull().default(0),
-	lastImportAt: timestamp('last_import_at', { withTimezone: true }).notNull()
+	lastImportAt: timestamp('last_import_at', { withTimezone: true }).notNull(),
+	/** AI food matching runs on `match_day` (UTC), capped separately from AI imports. */
+	matchCount: integer('match_count').notNull().default(0),
+	matchDay: date('match_day')
 });
 
 export const mealPlans = pgTable(
@@ -235,7 +247,9 @@ export const foodLog = pgTable(
 		kcal: numeric('kcal', { precision: 8, scale: 2 }).notNull(),
 		proteinG: numeric('protein_g', { precision: 8, scale: 2 }).notNull(),
 		carbsG: numeric('carbs_g', { precision: 8, scale: 2 }).notNull(),
-		fatG: numeric('fat_g', { precision: 8, scale: 2 }).notNull()
+		fatG: numeric('fat_g', { precision: 8, scale: 2 }).notNull(),
+		/** When the entry was logged, to list a day's entries in order. */
+		loggedAt: timestamp('logged_at', { withTimezone: true }).notNull().defaultNow()
 	},
 	(t) => [index('food_log_user_date_idx').on(t.userId, t.date)]
 );
