@@ -1,7 +1,9 @@
-# Lifecycle: import-food-matching
+# Lifecycle: nutrition-import-matching
+
+(Renamed from `import-food-matching` at Gate A so the archive workflow, which works alphabetically, archives `nutrition` first: this change modifies a `recipes` requirement that `nutrition` adds.)
 
 - Branch: `feature/import-food-matching`
-- Stage: 2 Propose + preflight
+- Stage: 3 Implement
 - Review round: 0 of 3
 - QA cycle: 0 of 3
 - Started: 2026-11-13
@@ -60,8 +62,8 @@ Approved: yes (user confirmed 2026-11-13)
 
 ## Gate A
 
-Approved: no
-Accepted preflight gaps: none
+Approved: yes, 2026-11-13 (user: "approve, we will just make it one prod release")
+Accepted preflight gaps: local Node 22 instead of 24. The `nutrition` dependency is resolved by the user's decision to ship both changes in one production release: this change merges to `develop` and joins PR #47; the rename keeps the archive order right.
 
 ## Preflight
 
