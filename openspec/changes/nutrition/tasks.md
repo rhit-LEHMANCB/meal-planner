@@ -32,8 +32,8 @@
 
 ## 6. Nutrition page
 
-- [ ] 6.1 `src/routes/nutrition/+page.server.ts`: load (week param and redirect, totals, average, today, goals, logs) and actions `log`, `remove`, `goals` posting to `?week=<Monday>&/name` with a hidden `week`, using `requireUserId` and the stores only. Verify `page.server.spec.ts` for the load assembly and action errors.
-- [ ] 6.2 `+page.svelte` following the Nutrition mockup without the Month toggle: week controls, today card, macros today, stacked calories-by-day chart with goal line and an accessible table, weekly average, logged entries by day with delete, quick log form (Food / Recipe), goals form, empty state, USDA credit. Verify a component spec for today/over, empty week and partial day, and `npm run lint`.
+- [x] 6.1 `src/routes/nutrition/+page.server.ts`: load (week param and redirect, totals, average, today, goals, logs) and actions `log`, `remove`, `goals` posting to `?week=<Monday>&/name` with a hidden `week`, using `requireUserId` and the stores only. Verify `page.server.spec.ts` for the load assembly and action errors.
+- [x] 6.2 `+page.svelte` following the Nutrition mockup without the Month toggle: week controls, today card, macros today, stacked calories-by-day chart with goal line and an accessible table, weekly average, logged entries by day with delete, quick log form (Food / Recipe), goals form, empty state, USDA credit. Verify a component spec for today/over, empty week and partial day, and `npm run lint`.
 
 ## 7. Docs and checks
 
