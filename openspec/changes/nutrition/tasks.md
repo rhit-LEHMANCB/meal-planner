@@ -28,7 +28,7 @@
 ## 5. Nutrition store and plan totals
 
 - [x] 5.1 `src/lib/server/nutrition.ts` `makeNutritionStore(db)` / `getNutritionStore()`: `weekInputs`, `logsForWeek`, `logFood`, `logRecipe` (snapshot from the engine), `removeLog`, `getGoals` (defaults when no row), `saveGoals` (upsert). Every method takes the owner id. Verify `nutrition.integration.spec.ts` on dev: week inputs only for the owner, fixed query count, snapshot unchanged after a recipe edit, another user's log entry and recipe behave as missing, goals default and upsert.
-- [ ] 5.2 Plan page: compute day totals in the load with `weekInputs` + `dayTotals` (planned and leftovers only) and show them in `WeekGrid.svelte` and `DayList.svelte` (kcal, partial marker, nothing for an empty day). Verify a component spec for total, partial and empty day.
+- [x] 5.2 Plan page: compute day totals in the load with `weekInputs` + `dayTotals` (planned and leftovers only) and show them in `WeekGrid.svelte` and `DayList.svelte` (kcal, partial marker, nothing for an empty day). Verify a component spec for total, partial and empty day.
 
 ## 6. Nutrition page
 
