@@ -49,7 +49,20 @@ Accepted preflight gaps: none
 
 ## Preflight
 
-(table of checks and results, from stage 2)
+Run 2026-11-12. GitHub backend: **gh**.
+
+| Check | Result |
+| --- | --- |
+| git identity and push to `origin` | OK (branch pushed) |
+| `gh auth status` with `repo` and `workflow` | OK |
+| Playwright `qa` project and browsers | OK (Playwright 1.64.1, chromium installed) |
+| QA credentials (`.env.qa`, both accounts) | OK (copied from main checkout, mode 600, gitignored) |
+| Dev site `/api/health` | OK (`{"db":"ok"}`) |
+| `npm run lint` / `check` / `test` / `build` / `check:server` | OK (523 tests; integration specs ran against Neon `dev` via `TEST_DATABASE_URL`, as CLAUDE.md prescribes) |
+| Node version | GAP: only Node 22.23 is installed locally; `.nvmrc` and `engines` say 24 and nvm is not installed. CI and App Hosting use 24. |
+| Neon CLI for local migrations to `dev` | OK |
+| GitHub `develop` environment secrets | OK (`DATABASE_URL_UNPOOLED`); this change needs no new secrets |
+| USDA SR Legacy CSV (2018-04) | Downloaded to the scratchpad (6.1 MB zip) with approval |
 
 ## Review rounds
 
