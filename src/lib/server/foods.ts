@@ -82,6 +82,17 @@ export const makeFoodStore = (db: Db) => {
 			return withUnits(rows);
 		},
 
+		/** The foods among `ids` the user can see, with their units. */
+		async getMany(userId: string, ids: string[]): Promise<FoodOption[]> {
+			const unique = [...new Set(ids)].filter((id) => UUID.test(id));
+			if (unique.length === 0) return [];
+			const rows = await db
+				.select({ id: foods.id, name: foods.name, userId: foods.userId })
+				.from(foods)
+				.where(and(inArray(foods.id, unique), visible(userId)));
+			return withUnits(rows);
+		},
+
 		/**
 		 * The best food for each ingredient name (the top search hit for its `suggestQuery`), or null.
 		 * Names are searched one by one; callers cap how many.

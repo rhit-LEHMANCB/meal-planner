@@ -20,5 +20,7 @@
 		errors={form?.errors}
 		submitLabel="Save changes"
 		cancelHref={`/recipes/${data.id}`}
+		nutrition
+		foodUnits={data.foodUnits}
 	/>
 </div>

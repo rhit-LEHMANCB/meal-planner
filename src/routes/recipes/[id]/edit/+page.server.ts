@@ -1,12 +1,23 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { parseRecipeForm, recipeToFormValues } from '$lib/domain/recipe-form';
 import { requireUserId } from '$lib/server/auth';
+import { getFoodStore } from '$lib/server/foods';
 import { getRecipeStore } from '$lib/server/recipes';
 
 export const load = async ({ locals, params }) => {
-	const recipe = await getRecipeStore().get(requireUserId(locals), params.id);
+	const userId = requireUserId(locals);
+	const recipe = await getRecipeStore().get(userId, params.id);
 	if (!recipe) throw error(404, 'Recipe not found');
-	return { id: recipe.id, values: recipeToFormValues(recipe) };
+	const linked = await getFoodStore().getMany(
+		userId,
+		recipe.ingredients.flatMap((i) => (i.foodId ? [i.foodId] : []))
+	);
+	return {
+		id: recipe.id,
+		values: recipeToFormValues(recipe),
+		/** Units of linked foods, so the form knows which rows need a weight in grams. */
+		foodUnits: Object.fromEntries(linked.map((f) => [f.id, f.units]))
+	};
 };
 
 export const actions = {

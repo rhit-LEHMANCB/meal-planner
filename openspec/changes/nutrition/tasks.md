@@ -22,8 +22,8 @@
 
 ## 4. Recipe forms and detail page
 
-- [ ] 4.1 `IngredientRows.svelte`: `nutrition` prop; per row linked food name, suggestion chip (Use / Dismiss), Match food search popover (uses `/plan/foods?q=`), clear link, grams field shown when the amount does not convert, hidden `ingredientFoodId` and `ingredientGrams` fields. Enabled on add and edit, off on import review. Verify `IngredientRows.svelte.spec.ts`: suggestion not posted until accepted, grams field shown only when needed, review mode renders no food controls.
-- [ ] 4.2 Recipe detail page: per-serving kcal, protein, carbs, fat, partial note "N of M ingredients have no nutrition" or "No nutrition yet", and a counts / no nutrition marker per ingredient. Verify `pages.spec.ts` (or a component spec) for full, partial and none.
+- [x] 4.1 `IngredientRows.svelte`: `nutrition` prop; per row linked food name, suggestion chip (Use / Dismiss), Match food search popover (uses `/plan/foods?q=`), clear link, grams field shown when the amount does not convert, hidden `ingredientFoodId` and `ingredientGrams` fields. Enabled on add and edit, off on import review. Verify `IngredientRows.svelte.spec.ts`: suggestion not posted until accepted, grams field shown only when needed, review mode renders no food controls.
+- [x] 4.2 Recipe detail page: per-serving kcal, protein, carbs, fat, partial note "N of M ingredients have no nutrition" or "No nutrition yet", and a counts / no nutrition marker per ingredient. Verify `pages.spec.ts` (or a component spec) for full, partial and none.
 
 ## 5. Nutrition store and plan totals
 

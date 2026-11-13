@@ -11,6 +11,8 @@ const store = vi.hoisted(() => ({
 
 vi.mock('$env/dynamic/private', () => ({ env: {} }));
 vi.mock('$lib/server/recipes', () => ({ getRecipeStore: () => store }));
+const foodStore = vi.hoisted(() => ({ getMany: vi.fn(), nutritionFor: vi.fn() }));
+vi.mock('$lib/server/foods', () => ({ getFoodStore: () => foodStore }));
 
 import { load as listLoad } from './+page.server';
 import { actions as newActions } from './new/+page.server';
@@ -49,6 +51,8 @@ const event = <T>(fields: Record<string, unknown>) => fields as unknown as T;
 beforeEach(() => {
 	vi.resetAllMocks();
 	store.foodErrors.mockResolvedValue({});
+	foodStore.getMany.mockResolvedValue([]);
+	foodStore.nutritionFor.mockResolvedValue(new Map());
 });
 
 describe('recipe list', () => {
@@ -273,10 +277,58 @@ describe('edit and delete by the owner', () => {
 		).rejects.toMatchObject({ status: 303, location: '/recipes' });
 	});
 
-	it('shows a recipe with its ingredients in the stored order', async () => {
-		store.get.mockResolvedValue({ id: 'r1', title: 'Chili', ingredients: ['a', 'b'] });
+	it('shows a recipe with its ingredients in the stored order and its nutrition', async () => {
+		const FOOD = '22222222-2222-4222-8222-222222222222';
+		const ingredients = [
+			{
+				rawText: '200 g rice',
+				quantity: 200,
+				unit: 'g',
+				name: 'rice',
+				note: null,
+				status: 'parsed',
+				foodId: FOOD,
+				foodName: 'Rice',
+				grams: null
+			},
+			{
+				rawText: 'salt',
+				quantity: null,
+				unit: null,
+				name: 'salt',
+				note: null,
+				status: 'skipped',
+				foodId: null,
+				foodName: null,
+				grams: null
+			}
+		];
+		store.get.mockResolvedValue({ id: 'r1', title: 'Chili', servings: 2, ingredients });
+		foodStore.nutritionFor.mockResolvedValue(
+			new Map([
+				[
+					FOOD,
+					{
+						id: FOOD,
+						kcalPer100g: 130,
+						proteinPer100g: 3,
+						carbsPer100g: 28,
+						fatPer100g: 0,
+						units: {}
+					}
+				]
+			])
+		);
 		const data = await showLoad(event({ locals: locals(), params: { id: 'r1' } }));
-		expect(data.recipe.ingredients).toEqual(['a', 'b']);
+		expect(data.recipe.ingredients).toEqual(ingredients);
+		expect(foodStore.nutritionFor).toHaveBeenCalledWith(ME, [FOOD]);
+		expect(data.nutrition).toMatchObject({
+			counted: 1,
+			total: 2,
+			partial: true,
+			rows: [true, false]
+		});
+		expect(data.nutrition.perServing.kcal).toBe(130);
 	});
 });
 
