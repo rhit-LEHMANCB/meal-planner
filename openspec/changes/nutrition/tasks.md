@@ -37,5 +37,5 @@
 
 ## 7. Docs and checks
 
-- [ ] 7.1 Add a "Nutrition" section to `CLAUDE.md` (engine in `nutrition.ts`, store, USDA seed regeneration, live vs snapshotted numbers) and update the "Grocery list" note that ingredients are not linked to foods (they now can be; the grocery list still does not use grams). Verify it matches the code.
-- [ ] 7.2 Run `npm run lint`, `npm run check`, `npm test` (with `TEST_DATABASE_URL` on dev), `npm run build` and `npm run check:server`. Verify all pass.
+- [x] 7.1 Add a "Nutrition" section to `CLAUDE.md` (engine in `nutrition.ts`, store, USDA seed regeneration, live vs snapshotted numbers) and update the "Grocery list" note that ingredients are not linked to foods (they now can be; the grocery list still does not use grams). Verify it matches the code.
+- [x] 7.2 Run `npm run lint`, `npm run check`, `npm test` (with `TEST_DATABASE_URL` on dev), `npm run build` and `npm run check:server`. Verify all pass.

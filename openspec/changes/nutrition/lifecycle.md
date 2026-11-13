@@ -1,7 +1,7 @@
 # Lifecycle: nutrition
 
 - Branch: `claude/dev-lifecycle-nutrition-3caa7b`
-- Stage: 3 Implement
+- Stage: 4 Review
 - Review round: 0 of 3
 - QA cycle: 0 of 3
 - Started: 2026-11-12
@@ -63,6 +63,10 @@ Run 2026-11-12. GitHub backend: **gh**.
 | Neon CLI for local migrations to `dev` | OK |
 | GitHub `develop` environment secrets | OK (`DATABASE_URL_UNPOOLED`); this change needs no new secrets |
 | USDA SR Legacy CSV (2018-04) | Downloaded to the scratchpad (6.1 MB zip) with approval |
+
+## Implementation
+
+Stage 3 done 2026-11-12: all 22 tasks ticked. lint, check, 652 tests (integration specs on Neon `dev`), build, check:server and check:migrations pass. One timing test (`html-scan.spec.ts` "reads unclosed main in linear time") failed once under full-suite load and passed alone; unrelated to this change. Migrations 0005 to 0007 were applied to the Neon `dev` branch locally for the integration specs.
 
 ## Review rounds
 
