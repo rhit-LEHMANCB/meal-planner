@@ -1,8 +1,8 @@
 # Lifecycle: nutrition
 
 - Branch: `claude/dev-lifecycle-nutrition-3caa7b`
-- Stage: 4 Review
-- Review round: 0 of 3
+- Stage: 5 Ship to develop
+- Review round: 1 of 3
 - QA cycle: 0 of 3
 - Started: 2026-11-12
 
@@ -70,11 +70,14 @@ Stage 3 done 2026-11-12: all 22 tasks ticked. lint, check, 652 tests (integratio
 
 ## Review rounds
 
-(none yet; one line per round: blockers, majors, fixed, rejected with reason)
+- Round 1 (2026-11-12, fresh Sonnet reviewer): 0 blockers, 0 majors, 4 minors, 2 nits. Exit condition met. Fixed anyway (trivial): inherited object keys as units (`Object.hasOwn` in `toGrams` and `log`, non-finite grams refused), oversized log entries refused before the insert (`too_large`), plan load test that logs never reach day totals, `logged_at` documented in design/proposal, script name in design/tasks.
 
 ## Deferred findings
 
-(minors, nits and known gaps to turn into issues at wrap-up)
+- Food suggestions run up to 50 concurrent searches per page load; de-duplicate names if latency shows (review nit).
+- Food matching and the quick log's food search need JavaScript; without it rows can only be saved unlinked (recipe logging works without JS).
+- "Today" on the plan uses server UTC on the server side (existing issue #31); the Nutrition page corrects today in the browser.
+- `html-scan.spec.ts` linear-time test is load-sensitive and failed once in a full local run.
 
 ## QA report
 

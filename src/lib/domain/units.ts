@@ -18,6 +18,11 @@ export const toGrams = (
 	foodUnits: Record<string, number> = {}
 ): number | null => {
 	const key = unit ? normalize(unit) : 'each';
-	const perUnit = WEIGHT_UNITS_IN_GRAMS[key] ?? foodUnits[key];
+	// Own keys only, so a unit such as "constructor" never reads an inherited property.
+	const perUnit = Object.hasOwn(WEIGHT_UNITS_IN_GRAMS, key)
+		? WEIGHT_UNITS_IN_GRAMS[key]
+		: Object.hasOwn(foodUnits, key)
+			? foodUnits[key]
+			: undefined;
 	return perUnit === undefined ? null : quantity * perUnit;
 };

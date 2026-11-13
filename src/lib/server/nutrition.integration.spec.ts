@@ -203,6 +203,18 @@ describe.skipIf(!url)('nutrition store (Neon dev branch)', () => {
 		await recipeStore.update(alice, bowl, bowlInput);
 	});
 
+	it('refuses inherited keys as units and amounts too large to store', async () => {
+		const base = { kind: 'food' as const, foodId: apple, date: MON, slot: null };
+		expect(await store.log(alice, { ...base, amount: 1, unit: 'constructor' })).toEqual({
+			ok: false,
+			reason: 'bad_unit'
+		});
+		expect(await store.log(alice, { ...base, amount: 99999, unit: 'each' })).toEqual({
+			ok: false,
+			reason: 'too_large'
+		});
+	});
+
 	it('refuses units the food does not have', async () => {
 		expect(
 			await store.log(alice, {

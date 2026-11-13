@@ -17,7 +17,7 @@ See proposal.md (Why) and the four delta specs for behavior. Relevant current st
 
 ### 1. USDA seed as a generated data migration
 
-`scripts/usda/build-seed.mjs <path-to-unzipped-csv-dir>` reads `food.csv`, `food_nutrient.csv` (nutrient ids 1008 kcal, 1003 protein, 1005 carbs, 1004 fat; missing → 0) and `food_portion.csv`, and writes `drizzle/<next>_usda_sr_legacy.sql` through `drizzle-kit generate --custom --name usda_sr_legacy` (so the journal stays consistent), then fills the file.
+`scripts/usda/build-seed.ts <path-to-unzipped-csv-dir>` reads `food.csv`, `food_nutrient.csv` (nutrient ids 1008 kcal, 1003 protein, 1005 carbs, 1004 fat; missing → 0) and `food_portion.csv`, and writes `drizzle/<next>_usda_sr_legacy.sql` through `drizzle-kit generate --custom --name usda_sr_legacy` (so the journal stays consistent), then fills the file.
 
 - Food ids are deterministic (`uuid` built from a SHA-1 of `usda:<fdc_id>`, version bits set), so `food_units` rows reference them directly and a re-run produces the same file.
 - Inserts are multi-row `INSERT … VALUES` in chunks of 500 with `ON CONFLICT DO NOTHING`, split by `--> statement-breakpoint`. Values are written as published, rounded to 2 decimals (columns are `numeric(7,2)`).
@@ -31,7 +31,7 @@ A unique index `foods_source_source_id_unique` on `(source, source_id)` is added
 ### 2. Schema
 
 - `recipe_ingredients.grams numeric(9,2)` nullable: the per-row weight override.
-- No change to `food_log` or `nutrition_goals`. `food_log.servings` holds recipe servings; for a food log entry the row stores `food_id`, `servings` = 1, and the amount and unit go in `label` ("Apple · 1 each"), since the table has no quantity column. Adding columns was considered; the label is display-only and the macros are already snapshotted, so it is not needed.
+- `food_log.logged_at timestamptz not null default now()`, so a day's log entries list in the order logged. No other change to `food_log` or `nutrition_goals`. `food_log.servings` holds recipe servings; for a food log entry the row stores `food_id`, `servings` = 1, and the amount and unit go in `label` ("Apple · 1 each"), since the table has no quantity column. Adding columns was considered; the label is display-only and the macros are already snapshotted, so it is not needed.
 
 ### 3. Pure engine in `src/lib/domain/nutrition.ts`
 

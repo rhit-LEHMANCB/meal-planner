@@ -27,7 +27,11 @@ export interface LogEntry {
 	macros: Macros;
 }
 
-export type LogResult = { ok: true } | { ok: false; reason: 'not_found' | 'bad_unit' };
+export type LogResult =
+	{ ok: true } | { ok: false; reason: 'not_found' | 'bad_unit' | 'too_large' };
+
+/** `food_log` numbers are numeric(8,2). */
+const LOG_MAX = 999999;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -169,9 +173,10 @@ export const makeNutritionStore = (db: Db) => {
 				const food = (await foodStore.nutritionFor(userId, [input.foodId])).get(input.foodId);
 				if (!food) return { ok: false, reason: 'not_found' };
 				const unit = input.unit === 'g' ? 'g' : input.unit;
-				if (unit !== 'g' && !(unit in food.units)) return { ok: false, reason: 'bad_unit' };
+				if (unit !== 'g' && !Object.hasOwn(food.units, unit))
+					return { ok: false, reason: 'bad_unit' };
 				const grams = amountGrams(input.amount, unit, food);
-				if (grams === null) return { ok: false, reason: 'bad_unit' };
+				if (grams === null || !Number.isFinite(grams)) return { ok: false, reason: 'bad_unit' };
 				const [named] = await db
 					.select({ name: foods.name })
 					.from(foods)
@@ -196,6 +201,10 @@ export const makeNutritionStore = (db: Db) => {
 					servings: input.servings,
 					macros: scaleMacros(recipe.perServing, input.servings)
 				};
+			}
+			const values = [row.macros.kcal, row.macros.proteinG, row.macros.carbsG, row.macros.fatG];
+			if (!values.every((v) => Number.isFinite(v) && v <= LOG_MAX)) {
+				return { ok: false, reason: 'too_large' };
 			}
 			await db.insert(foodLog).values({
 				userId,

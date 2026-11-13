@@ -64,6 +64,13 @@ export const actions = {
 		const result = await getNutritionStore().log(userId, form.value);
 		if (!result.ok) {
 			const field = form.value.kind === 'food' ? 'foodId' : 'recipeId';
+			if (result.reason === 'too_large') {
+				const amountField = form.value.kind === 'food' ? 'amount' : 'servings';
+				return fail(400, {
+					action: 'log',
+					errors: { [amountField]: 'That is more than one entry can hold. Log a smaller amount.' }
+				});
+			}
 			return result.reason === 'bad_unit'
 				? fail(400, { action: 'log', errors: { unit: 'Choose one of this food’s units.' } })
 				: fail(404, {

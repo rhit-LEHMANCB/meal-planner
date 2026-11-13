@@ -26,7 +26,7 @@ The app plans meals but says nothing about what they add up to: recipes have no 
 
 ## Impact
 
-- Schema (additive): `recipe_ingredients.grams` (nullable); unique index on `foods (source, source_id)`; a large data migration inserting USDA foods and `food_units` (a few MB of SQL).
+- Schema (additive): `recipe_ingredients.grams` (nullable); `food_log.logged_at` (default now); unique index on `foods (source, source_id)`; a large data migration inserting USDA foods and `food_units` (a few MB of SQL).
 - New: `scripts/usda/` generator (reads a downloaded CSV, writes the migration; not part of the build), `src/lib/domain/nutrition.ts` extensions and `food-match.ts` (pure, with specs), `src/lib/server/nutrition.ts` store (`getNutritionStore()`), `/nutrition` route with actions, a food-match control in `IngredientRows.svelte`, a day total on the plan grid.
 - Changed: `src/lib/server/recipes.ts` (save and load food links and grams), `src/lib/server/foods.ts` (search ranking, nutrition lookup), plan load (per-day totals).
 - No new dependencies, secrets or environment variables. Import review and the grocery list are unchanged.

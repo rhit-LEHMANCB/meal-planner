@@ -134,6 +134,16 @@ describe('log', () => {
 	});
 });
 
+describe('log limits', () => {
+	it('shows an amount error when the entry is too large to store', async () => {
+		nutrition.log.mockResolvedValue({ ok: false, reason: 'too_large' });
+		const result = await actions.log(
+			post({ week: MON, kind: 'food', date: MON, slot: '', foodId: ID, amount: '99999', unit: 'g' })
+		);
+		expect(result).toMatchObject({ status: 400, data: { errors: { amount: expect.any(String) } } });
+	});
+});
+
 describe('remove', () => {
 	it('deletes an own entry', async () => {
 		nutrition.removeLog.mockResolvedValue(true);
