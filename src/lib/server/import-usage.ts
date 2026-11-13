@@ -1,9 +1,12 @@
-import { and, eq, lt, ne, or, sql } from 'drizzle-orm';
+import { and, eq, isNull, lt, ne, or, sql } from 'drizzle-orm';
 import { getDb, type Db } from './db';
 import { importUsage } from './db/schema';
 
 /** AI-parsed imports allowed per user per UTC day. Structured-data imports are free. */
 export const DAILY_AI_IMPORTS = 20;
+
+/** AI food matching runs allowed per user per UTC day (imports and "Match with AI" together). */
+export const DAILY_AI_MATCHES = 50;
 
 /** Minimum time between two imports by the same user, of any source. */
 export const COOLDOWN_SECONDS = 10;
@@ -66,6 +69,39 @@ export const makeImportUsage = (db: Db) => ({
 			.update(importUsage)
 			.set({ aiCount: sql`greatest(${importUsage.aiCount} - 1, 0)` })
 			.where(and(eq(importUsage.userId, userId), eq(importUsage.day, today)));
+	},
+
+	/**
+	 * Takes one of today's AI matching runs. False when the cap is reached. Needs the user's
+	 * `import_usage` row, so call it after startImport. Kept apart from the AI import count.
+	 */
+	async reserveMatch(userId: string): Promise<boolean> {
+		const rows = await db
+			.update(importUsage)
+			.set({
+				matchCount: sql`case when ${importUsage.matchDay} = ${today} then ${importUsage.matchCount} + 1 else 1 end`,
+				matchDay: sql`${today}`
+			})
+			.where(
+				and(
+					eq(importUsage.userId, userId),
+					or(
+						isNull(importUsage.matchDay),
+						ne(importUsage.matchDay, today),
+						lt(importUsage.matchCount, DAILY_AI_MATCHES)
+					)
+				)
+			)
+			.returning({ matchCount: importUsage.matchCount });
+		return rows.length > 0;
+	},
+
+	/** Gives back a matching run whose request never reached the model. */
+	async refundMatch(userId: string): Promise<void> {
+		await db
+			.update(importUsage)
+			.set({ matchCount: sql`greatest(${importUsage.matchCount} - 1, 0)` })
+			.where(and(eq(importUsage.userId, userId), eq(importUsage.matchDay, today)));
 	},
 
 	/** AI imports the user has left today. */

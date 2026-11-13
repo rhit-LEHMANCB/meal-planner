@@ -4,7 +4,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { eq, inArray, sql } from 'drizzle-orm';
 import { createDb } from './db';
 import { importUsage } from './db/schema';
-import { DAILY_AI_IMPORTS, makeImportUsage } from './import-usage';
+import { DAILY_AI_IMPORTS, DAILY_AI_MATCHES, makeImportUsage } from './import-usage';
 
 try {
 	process.loadEnvFile('.env');
@@ -14,8 +14,8 @@ try {
 
 const url = process.env.TEST_DATABASE_URL;
 const run = `it-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-const users = ['a', 'b', 'c', 'd', 'e'].map((u) => `${run}-${u}`);
-const [cooldownUser, capUser, rolloverUser, otherUser, refundUser] = users;
+const users = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((u) => `${run}-${u}`);
+const [cooldownUser, capUser, rolloverUser, otherUser, refundUser, matchUser, matchOther] = users;
 
 describe.skipIf(!url)('import usage (Neon dev branch)', () => {
 	const db = createDb(url ?? '');
@@ -93,5 +93,31 @@ describe.skipIf(!url)('import usage (Neon dev branch)', () => {
 
 	it('cannot reserve without starting an import first', async () => {
 		expect(await usage.reserveAi(`${run}-never-started`)).toBe(false);
+	});
+	it('caps matching runs per day apart from AI imports, per user', async () => {
+		await usage.startImport(matchUser);
+		await usage.startImport(matchOther);
+		const results = await Promise.all(
+			Array.from({ length: DAILY_AI_MATCHES + 5 }, () => usage.reserveMatch(matchUser))
+		);
+		expect(results.filter(Boolean)).toHaveLength(DAILY_AI_MATCHES);
+		expect(await usage.reserveMatch(matchOther)).toBe(true);
+		// AI imports are untouched.
+		expect(await usage.remainingToday(matchUser)).toBe(DAILY_AI_IMPORTS);
+
+		// A refund frees one run; a new UTC day starts over.
+		await usage.refundMatch(matchUser);
+		expect(await usage.reserveMatch(matchUser)).toBe(true);
+		expect(await usage.reserveMatch(matchUser)).toBe(false);
+		await db
+			.update(importUsage)
+			.set({ matchDay: sql`(now() at time zone 'utc')::date - 1` })
+			.where(eq(importUsage.userId, matchUser));
+		expect(await usage.reserveMatch(matchUser)).toBe(true);
+		const [row] = await db
+			.select({ count: importUsage.matchCount })
+			.from(importUsage)
+			.where(eq(importUsage.userId, matchUser));
+		expect(row.count).toBe(1);
 	});
 });

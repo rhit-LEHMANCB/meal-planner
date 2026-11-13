@@ -79,8 +79,10 @@ export const recipeIngredients = pgTable('recipe_ingredients', {
 	/** Plain ingredient name without amount or prep notes. Null on rows saved before structured rows. */
 	name: text('name'),
 	note: text('note'),
-	/** Weight in grams the user entered for a linked row whose amount does not convert. */
+	/** Weight in grams for a linked row whose amount does not convert. */
 	grams: numeric('grams', { precision: 9, scale: 2 }),
+	/** Who set `grams`: 'user' or 'ai' (an AI estimate, shown as one until the user edits it). */
+	gramsSource: text('grams_source'),
 	/**
 	 * 'parsed' | 'check' | 'skipped': drives the row chip. 'unparsed' marks rows saved as plain
 	 * text before structured rows existed; the edit form pre-fills them with the line parser.
@@ -93,7 +95,10 @@ export const importUsage = pgTable('import_usage', {
 	userId: text('user_id').primaryKey(),
 	day: date('day').notNull(),
 	aiCount: integer('ai_count').notNull().default(0),
-	lastImportAt: timestamp('last_import_at', { withTimezone: true }).notNull()
+	lastImportAt: timestamp('last_import_at', { withTimezone: true }).notNull(),
+	/** AI food matching runs on `match_day` (UTC), capped separately from AI imports. */
+	matchCount: integer('match_count').notNull().default(0),
+	matchDay: date('match_day')
 });
 
 export const mealPlans = pgTable(

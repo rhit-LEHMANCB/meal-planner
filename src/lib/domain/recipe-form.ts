@@ -98,8 +98,12 @@ export interface IngredientRowValues {
 	/** Linked food id ('' = none) and its name for display; the server checks the id. */
 	foodId?: string;
 	foodName?: string;
-	/** Weight in grams typed for a linked row whose amount does not convert ('' = none). */
+	/** Weight in grams for a linked row whose amount does not convert ('' = none). */
 	grams?: string;
+	/** Who set `grams`: an AI estimate stays 'ai' until the user edits it. */
+	gramsSource?: 'user' | 'ai';
+	/** Display only: the food was linked by AI matching in this form. */
+	foodMatch?: 'ai';
 }
 
 /** The form's text exactly as typed, used to refill the form after an error. */
@@ -126,6 +130,7 @@ export interface IngredientInput extends IngredientFields {
 	status: IngredientStatus;
 	foodId: string | null;
 	grams: number | null;
+	gramsSource: 'user' | 'ai' | null;
 }
 
 /** A validated recipe, ready to save. */
@@ -250,7 +255,8 @@ const validateRow = (row: IngredientRowValues): { errors: RowErrors; value?: Ing
 				raw !== '' && raw.length <= LIMITS.ingredientLineMax ? raw : formatIngredientLine(fields),
 			status: ingredientStatus(fields),
 			foodId: foodId || null,
-			grams: foodId ? grams : null
+			grams: foodId ? grams : null,
+			gramsSource: foodId && grams !== null ? (row.gramsSource === 'ai' ? 'ai' : 'user') : null
 		}
 	};
 };
@@ -270,6 +276,8 @@ export const parseRecipeForm = (data: FormLike): RecipeFormResult => {
 	const foodIds = texts(data, 'ingredientFoodId');
 	const foodNames = texts(data, 'ingredientFoodName');
 	const gramsList = texts(data, 'ingredientGrams');
+	const gramsSources = texts(data, 'ingredientGramsSource');
+	const foodMatches = texts(data, 'ingredientFoodMatch');
 	const count = Math.max(raws.length, amounts.length, units.length, names.length, notes.length);
 
 	const typed: IngredientRowValues[] = Array.from({ length: count }, (_, i) => ({
@@ -280,7 +288,9 @@ export const parseRecipeForm = (data: FormLike): RecipeFormResult => {
 		note: notes[i] ?? '',
 		foodId: foodIds[i] ?? '',
 		foodName: foodNames[i] ?? '',
-		grams: gramsList[i] ?? ''
+		grams: gramsList[i] ?? '',
+		...(gramsSources[i] === 'ai' ? { gramsSource: 'ai' as const } : {}),
+		...(foodMatches[i] === 'ai' ? { foodMatch: 'ai' as const } : {})
 	}));
 	const pasted = parseLines(text(data, 'pastedLines')).map((line) =>
 		lineToRow(parseIngredientLine(line))
@@ -345,6 +355,7 @@ export interface StoredIngredient {
 	/** The linked food's name, when the user can still see it. */
 	foodName?: string | null;
 	grams?: number | null;
+	gramsSource?: string | null;
 }
 
 /** Editor text for a saved row. Plain-text rows are pre-filled by the line parser; nothing is saved. */
@@ -352,7 +363,10 @@ export const storedToRow = (ingredient: StoredIngredient): IngredientRowValues =
 	const link = {
 		foodId: ingredient.foodId && ingredient.foodName ? ingredient.foodId : '',
 		foodName: ingredient.foodId && ingredient.foodName ? ingredient.foodName : '',
-		grams: ingredient.grams == null ? '' : String(ingredient.grams)
+		grams: ingredient.grams == null ? '' : String(ingredient.grams),
+		...(ingredient.grams != null && ingredient.gramsSource === 'ai'
+			? { gramsSource: 'ai' as const }
+			: {})
 	};
 	return ingredient.status === 'unparsed' || ingredient.name === null
 		? { ...lineToRow(parseIngredientLine(ingredient.rawText)), ...link }

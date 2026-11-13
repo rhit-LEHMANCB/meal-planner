@@ -23,6 +23,8 @@ const form = (fields: Record<string, string>, rows: Row[] = []) => {
 		data.append('ingredientFoodId', row.foodId ?? '');
 		data.append('ingredientFoodName', row.foodName ?? '');
 		data.append('ingredientGrams', row.grams ?? '');
+		data.append('ingredientGramsSource', row.gramsSource ?? '');
+		data.append('ingredientFoodMatch', row.foodMatch ?? '');
 	}
 	return data;
 };
@@ -406,6 +408,49 @@ describe('food links on rows', () => {
 			expect(r.errors.rows?.[0]?.grams).toBe('Weight must be more than 0 g, up to 100,000 g.');
 			expect(r.values.ingredients[0]).toMatchObject({ foodId: FOOD, grams });
 		}
+	});
+
+	it('keeps an AI estimate marker only with a weight on a linked row', () => {
+		const r = parseRecipeForm(
+			form(valid, [
+				{ ...cilantro, grams: '60', gramsSource: 'ai' },
+				{ ...cilantro, grams: '60' },
+				{ ...cilantro, grams: '', gramsSource: 'ai' },
+				{ ...turkey, grams: '60', gramsSource: 'ai' }
+			])
+		);
+		expect(r.ok && r.value.ingredients.map((i) => i.gramsSource)).toEqual([
+			'ai',
+			'user',
+			null,
+			null
+		]);
+		expect(r.ok && r.values.ingredients[0]).toMatchObject({ gramsSource: 'ai' });
+	});
+
+	it('refills a saved AI estimate as an estimate', () => {
+		const values = recipeToFormValues({
+			title: 'x',
+			servings: 1,
+			totalMinutes: null,
+			sourceUrl: null,
+			instructions: [],
+			ingredients: [
+				{
+					rawText: 'salt',
+					quantity: null,
+					unit: null,
+					name: 'salt',
+					note: null,
+					status: 'skipped',
+					foodId: FOOD,
+					foodName: 'Salt',
+					grams: 2,
+					gramsSource: 'ai'
+				}
+			]
+		});
+		expect(values.ingredients[0]).toMatchObject({ grams: '2', gramsSource: 'ai' });
 	});
 
 	it('rejects a food id that is not an id', () => {

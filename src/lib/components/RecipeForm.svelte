@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import IngredientRows from '$lib/components/IngredientRows.svelte';
+	import type { FoodNutrition } from '$lib/domain/nutrition';
 	import type { RecipeFormErrors, RecipeFormValues } from '$lib/domain/recipe-form';
 
 	let {
@@ -12,7 +13,10 @@
 		cancelLabel = 'Cancel',
 		action,
 		nutrition = false,
-		foodUnits = {}
+		foodUnits = {},
+		foodNutrition = {},
+		preview = false,
+		aiMatch = false
 	}: {
 		values: RecipeFormValues;
 		errors?: RecipeFormErrors;
@@ -21,13 +25,22 @@
 		cancelLabel?: string;
 		/** A named form action such as "?/save"; the page's default action when left out. */
 		action?: string;
-		/** Food links and grams on ingredient rows (add and edit, not import review). */
+		/** Food links and grams on ingredient rows. */
 		nutrition?: boolean;
 		/** Units of linked foods, by food id. */
 		foodUnits?: Record<string, string[]>;
+		/** Numbers of linked foods, by food id, for the preview. */
+		foodNutrition?: Record<string, FoodNutrition>;
+		/** A per-serving nutrition preview under the ingredients (import review). */
+		preview?: boolean;
+		/** The "Match with AI" button (edit form). */
+		aiMatch?: boolean;
 	} = $props();
 
 	let busy = $state(false);
+	/** Servings as typed, for the preview; starts from the values. */
+	let typedServings = $state<string | null>(null);
+	const servingsNow = $derived(typedServings ?? values.servings);
 </script>
 
 <form
@@ -72,6 +85,7 @@
 				inputmode="numeric"
 				required
 				value={values.servings}
+				oninput={(e) => (typedServings = e.currentTarget.value)}
 				aria-invalid={errors.servings ? 'true' : undefined}
 				aria-describedby={errors.servings ? 'servings-error' : undefined}
 			/>
@@ -120,6 +134,10 @@
 			error={errors.ingredients}
 			{nutrition}
 			{foodUnits}
+			{foodNutrition}
+			{preview}
+			{aiMatch}
+			servings={servingsNow}
 		/>
 	{/key}
 

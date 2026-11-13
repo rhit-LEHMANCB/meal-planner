@@ -61,7 +61,7 @@ export const makeFoodStore = (db: Db) => {
 		 * Own and shared foods whose name contains every word of `query` (singular or plural), at
 		 * most 20: own first, then names starting with the first word, then shorter names, then by name.
 		 */
-		async search(userId: string, query: string): Promise<FoodOption[]> {
+		async search(userId: string, query: string, limit = SEARCH_LIMIT): Promise<FoodOption[]> {
 			const stems = query
 				.trim()
 				.split(/\s+/)
@@ -78,7 +78,7 @@ export const makeFoodStore = (db: Db) => {
 					sql`length(${foods.name})`,
 					asc(foods.name)
 				)
-				.limit(SEARCH_LIMIT);
+				.limit(Math.min(Math.max(1, limit), SEARCH_LIMIT));
 			return withUnits(rows);
 		},
 
@@ -169,5 +169,21 @@ export const makeFoodStore = (db: Db) => {
 };
 
 export type FoodStore = ReturnType<typeof makeFoodStore>;
+
+/** A search result plus its numbers, so the browser can preview nutrition. */
+export type FoodWithNutrition = FoodOption & { nutrition: FoodNutrition | null };
+
+/** Attaches per-100 g numbers and unit weights to foods (one query for all of them). */
+export const withNutrition = async (
+	store: FoodStore,
+	userId: string,
+	options: FoodOption[]
+): Promise<FoodWithNutrition[]> => {
+	const numbers = await store.nutritionFor(
+		userId,
+		options.map((o) => o.id)
+	);
+	return options.map((o) => ({ ...o, nutrition: numbers.get(o.id) ?? null }));
+};
 
 export const getFoodStore = (): FoodStore => makeFoodStore(getDb());

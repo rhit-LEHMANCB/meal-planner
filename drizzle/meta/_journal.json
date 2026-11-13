@@ -57,6 +57,13 @@
       "when": 1794531298779,
       "tag": "0007_spotty_dazzler",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794542621065,
+      "tag": "0008_outgoing_captain_universe",
+      "breakpoints": true
     }
   ]
 }

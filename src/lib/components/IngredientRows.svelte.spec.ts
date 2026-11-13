@@ -165,3 +165,263 @@ describe('IngredientRows with nutrition', () => {
 		expect(calls).toEqual([]);
 	});
 });
+
+describe('IngredientRows with AI matches', () => {
+	const cil = {
+		id: 'f-cil',
+		kcalPer100g: 23,
+		proteinPer100g: 2,
+		carbsPer100g: 4,
+		fatPer100g: 0,
+		units: {}
+	};
+	const rice = {
+		id: 'f-rice',
+		kcalPer100g: 130,
+		proteinPer100g: 3,
+		carbsPer100g: 28,
+		fatPer100g: 0,
+		units: {}
+	};
+	const aiRows = [
+		{
+			raw: '1 bunch cilantro',
+			amount: '1',
+			unit: 'bunch',
+			name: 'cilantro',
+			note: '',
+			foodId: 'f-cil',
+			foodName: 'Coriander leaves, raw',
+			foodMatch: 'ai' as const,
+			grams: '100',
+			gramsSource: 'ai' as const
+		},
+		{
+			raw: '200 g rice',
+			amount: '200',
+			unit: 'g',
+			name: 'rice',
+			note: '',
+			foodId: 'f-rice',
+			foodName: 'Rice',
+			foodMatch: 'ai' as const
+		}
+	];
+	const posted = (screen: ReturnType<typeof render>, name: string) =>
+		[...screen.container.querySelectorAll<HTMLInputElement>(`input[name="${name}"]`)].map(
+			(input) => input.value
+		);
+
+	afterEach(() => vi.unstubAllGlobals());
+	const quietFetch = () =>
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async () => new Response(JSON.stringify({ suggestions: [], foods: [] })))
+		);
+
+	it('marks AI matches and estimates, and an edited estimate becomes the user’s', async () => {
+		quietFetch();
+		const screen = render(IngredientRows, {
+			rows: aiRows,
+			nutrition: true,
+			foodNutrition: { 'f-cil': cil, 'f-rice': rice }
+		});
+		expect(screen.container.querySelectorAll('[data-ai-match]')).toHaveLength(2);
+		await expect
+			.element(screen.getByText('AI estimate: 100 g. Change it if you know better.'))
+			.toBeVisible();
+		expect(posted(screen, 'ingredientGramsSource')).toEqual(['ai', '', '']);
+		expect(posted(screen, 'ingredientFoodMatch')).toEqual(['ai', 'ai', '']);
+		await screen.getByLabelText('AI estimate (g)').fill('80');
+		expect(posted(screen, 'ingredientGramsSource')).toEqual(['user', '', '']);
+		await expect.element(screen.getByLabelText('About how many grams?')).toHaveValue('80');
+	});
+
+	it('previews nutrition per serving and follows a cleared row', async () => {
+		quietFetch();
+		const screen = render(IngredientRows, {
+			rows: aiRows,
+			nutrition: true,
+			preview: true,
+			servings: '2',
+			foodNutrition: { 'f-cil': cil, 'f-rice': rice }
+		});
+		// (100 g × 23 + 200 g × 130) / 2 = 141.5 kcal
+		const kcal = () =>
+			screen.container.querySelector('[data-preview-value="Calories"]')?.textContent;
+		expect(kcal()).toBe('142 kcal');
+		await expect.element(screen.getByText('Includes 1 AI-estimated weight.')).toBeVisible();
+		await screen.getByRole('button', { name: 'Clear food, row 2' }).click();
+		expect(kcal()).toBe('12 kcal');
+		await expect.element(screen.getByText('1 of 2 ingredients have no nutrition.')).toBeVisible();
+	});
+
+	it('asks for servings before previewing', async () => {
+		quietFetch();
+		const screen = render(IngredientRows, {
+			rows: aiRows,
+			nutrition: true,
+			preview: true,
+			servings: ''
+		});
+		await expect
+			.element(screen.getByText('Add servings to see nutrition per serving.'))
+			.toBeVisible();
+	});
+
+	it('applies "Match with AI" results and sends cleared rows as cleared', async () => {
+		const calls: { url: string; body: unknown }[] = [];
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async (url: string, init?: RequestInit) => {
+				if (url.includes('food-match')) {
+					calls.push({ url, body: JSON.parse(String(init?.body)) });
+					return new Response(
+						JSON.stringify({
+							status: 'matched',
+							rows: [
+								{
+									index: 0,
+									foodId: 'f-onion',
+									foodName: 'Onions, raw',
+									foodMatch: 'ai',
+									units: ['g', 'each'],
+									nutrition: null,
+									grams: '',
+									gramsSource: null
+								}
+							]
+						})
+					);
+				}
+				return new Response(JSON.stringify({ suggestions: [null, null], foods: [] }));
+			})
+		);
+		const screen = render(IngredientRows, {
+			rows: [
+				{ raw: '', amount: '1', unit: '', name: 'onion', note: '' },
+				{
+					raw: '',
+					amount: '1',
+					unit: 'bunch',
+					name: 'parsley',
+					note: '',
+					foodId: 'f-p',
+					foodName: 'Parsley'
+				}
+			],
+			nutrition: true,
+			aiMatch: true
+		});
+		await screen.getByRole('button', { name: 'Clear food, row 2' }).click();
+		await screen.getByRole('button', { name: 'Match with AI' }).click();
+		await expect.element(screen.getByText('Matched 1 row. Check them, then save.')).toBeVisible();
+		expect(posted(screen, 'ingredientFoodId').slice(0, 2)).toEqual(['f-onion', '']);
+		const sent = (calls[0].body as { rows: { cleared: boolean; name: string }[] }).rows;
+		expect(sent.slice(0, 2).map((r) => [r.name, r.cleared])).toEqual([
+			['onion', false],
+			['parsley', true]
+		]);
+	});
+
+	it('shows the cap message and changes nothing', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async (url: string) =>
+				url.includes('food-match')
+					? new Response(JSON.stringify({ status: 'limit', rows: [] }))
+					: new Response(JSON.stringify({ suggestions: [null], foods: [] }))
+			)
+		);
+		const screen = render(IngredientRows, {
+			rows: [{ raw: '', amount: '1', unit: '', name: 'onion', note: '' }],
+			nutrition: true,
+			aiMatch: true
+		});
+		await screen.getByRole('button', { name: 'Match with AI' }).click();
+		await expect
+			.element(screen.getByText('AI matching is unavailable until tomorrow (daily limit reached).'))
+			.toBeVisible();
+		expect(posted(screen, 'ingredientFoodId')[0]).toBe('');
+	});
+
+	it('drops an AI estimate when the user picks another food', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async (url: string) =>
+				url.includes('/plan/foods')
+					? new Response(
+							JSON.stringify({
+								foods: [{ id: 'f-pars', name: 'Parsley, fresh', own: false, units: ['g'] }]
+							})
+						)
+					: new Response(JSON.stringify({ suggestions: [], foods: [] }))
+			)
+		);
+		const screen = render(IngredientRows, { rows: [aiRows[0]], nutrition: true });
+		await screen.getByRole('button', { name: 'Change food, row 1' }).click();
+		await screen.getByRole('button', { name: 'Search' }).click();
+		await screen.getByRole('button', { name: 'Parsley, fresh' }).click();
+		expect(posted(screen, 'ingredientFoodId')[0]).toBe('f-pars');
+		await expect.element(screen.getByLabelText('About how many grams?')).toHaveValue('');
+		expect(posted(screen, 'ingredientGramsSource')[0]).toBe('');
+	});
+
+	it('keeps a row the user changed while Match with AI was running', async () => {
+		let release: (r: Response) => void = () => {};
+		vi.stubGlobal(
+			'fetch',
+			vi.fn((url: string) =>
+				url.includes('food-match')
+					? new Promise<Response>((r) => (release = r))
+					: Promise.resolve(new Response(JSON.stringify({ suggestions: [null], foods: [] })))
+			)
+		);
+		const screen = render(IngredientRows, {
+			rows: [
+				{
+					raw: '',
+					amount: '1',
+					unit: 'bunch',
+					name: 'parsley',
+					note: '',
+					foodId: 'f-p',
+					foodName: 'Parsley'
+				}
+			],
+			nutrition: true,
+			aiMatch: true,
+			foodUnits: { 'f-p': ['g'] }
+		});
+		await screen.getByRole('button', { name: 'Match with AI' }).click();
+		await screen.getByLabelText('About how many grams?').fill('50');
+		release(
+			new Response(
+				JSON.stringify({
+					status: 'matched',
+					rows: [
+						{
+							index: 0,
+							foodId: 'f-p',
+							foodName: 'Parsley',
+							foodMatch: null,
+							units: ['g'],
+							nutrition: null,
+							grams: '60',
+							gramsSource: 'ai'
+						}
+					]
+				})
+			)
+		);
+		await expect.element(screen.getByText('Nothing new to match.')).toBeVisible();
+		await expect.element(screen.getByLabelText('About how many grams?')).toHaveValue('50');
+		expect(posted(screen, 'ingredientGramsSource')[0]).toBe('user');
+	});
+
+	it('offers no Match with AI button unless asked', () => {
+		quietFetch();
+		const screen = render(IngredientRows, { rows: aiRows, nutrition: true });
+		expect(screen.container.textContent).not.toContain('Match with AI');
+	});
+});

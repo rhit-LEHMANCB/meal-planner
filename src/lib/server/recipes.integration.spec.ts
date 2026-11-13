@@ -81,6 +81,7 @@ describe.skipIf(!url)('recipe store (Neon dev branch)', () => {
 			data.append('ingredientFoodId', foodId);
 			data.append('ingredientFoodName', '');
 			data.append('ingredientGrams', grams);
+			data.append('ingredientGramsSource', grams ? 'ai' : '');
 		}
 		const result = parseRecipeForm(data);
 		if (!result.ok) throw new Error('linked input is invalid');
@@ -123,14 +124,13 @@ describe.skipIf(!url)('recipe store (Neon dev branch)', () => {
 			])
 		);
 		const rows = (await store.get(alice, id))!.ingredients;
-		expect(rows.map((r) => [r.foodId, r.foodName, r.grams])).toEqual([
-			[shared.id, shared.name, null],
-			[own, `${run} own`, 60],
-			[null, null, null]
+		expect(rows.map((r) => [r.foodId, r.foodName, r.grams, r.gramsSource])).toEqual([
+			[shared.id, shared.name, null, null],
+			[own, `${run} own`, 60, 'ai'],
+			[null, null, null, null]
 		]);
 		const values = recipeToFormValues((await store.get(alice, id))!);
-		expect(values.ingredients[1]).toMatchObject({ foodId: own, grams: '60' });
-
+		expect(values.ingredients[1]).toMatchObject({ foodId: own, grams: '60', gramsSource: 'ai' });
 		await store.update(alice, id, linkedInput([['200 g chicken', '', '']]));
 		expect((await store.get(alice, id))!.ingredients[0]).toMatchObject({ foodId: null });
 	});
@@ -184,7 +184,8 @@ describe.skipIf(!url)('recipe store (Neon dev branch)', () => {
 				status: 'parsed',
 				foodId: null,
 				foodName: null,
-				grams: null
+				grams: null,
+				gramsSource: null
 			},
 			{
 				rawText: '1 1/2 cups rice',
@@ -195,7 +196,8 @@ describe.skipIf(!url)('recipe store (Neon dev branch)', () => {
 				status: 'parsed',
 				foodId: null,
 				foodName: null,
-				grams: null
+				grams: null,
+				gramsSource: null
 			},
 			{
 				rawText: 'Salt to taste',
@@ -206,7 +208,8 @@ describe.skipIf(!url)('recipe store (Neon dev branch)', () => {
 				status: 'skipped',
 				foodId: null,
 				foodName: null,
-				grams: null
+				grams: null,
+				gramsSource: null
 			}
 		]);
 	});
@@ -254,6 +257,8 @@ describe.skipIf(!url)('recipe store (Neon dev branch)', () => {
 				note: row.note,
 				foodId: row.foodId ?? null,
 				grams: row.grams ?? null,
+				gramsSource:
+					row.gramsSource === 'ai' ? ('ai' as const) : row.grams != null ? ('user' as const) : null,
 				status: row.status === 'unparsed' ? 'check' : row.status
 			}))
 		});

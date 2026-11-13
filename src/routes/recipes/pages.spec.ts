@@ -122,7 +122,14 @@ describe('recipe detail', () => {
 		const out = html(DetailPage, {
 			data: {
 				recipe,
-				nutrition: { perServing: per, counted: 2, total: 2, partial: false, rows: [true, true] }
+				nutrition: {
+					perServing: per,
+					counted: 2,
+					total: 2,
+					partial: false,
+					estimated: 0,
+					rows: [true, true]
+				}
 			}
 		});
 		expect(out).toContain('Nutrition per serving');
@@ -136,11 +143,35 @@ describe('recipe detail', () => {
 		const out = html(DetailPage, {
 			data: {
 				recipe,
-				nutrition: { perServing: per, counted: 1, total: 2, partial: true, rows: [true, false] }
+				nutrition: {
+					perServing: per,
+					counted: 1,
+					total: 2,
+					partial: true,
+					estimated: 0,
+					rows: [true, false]
+				}
 			}
 		});
 		expect(out).toContain('1 of 2 ingredients have no nutrition');
 		expect(out).toContain('No nutrition');
+	});
+
+	it('says how many weights are AI estimates', () => {
+		const out = html(DetailPage, {
+			data: {
+				recipe,
+				nutrition: {
+					perServing: per,
+					counted: 2,
+					total: 2,
+					partial: false,
+					estimated: 2,
+					rows: [true, true]
+				}
+			}
+		});
+		expect(out).toContain('Includes 2 AI-estimated weights');
 	});
 
 	it('says there is no nutrition yet when nothing is linked', () => {
@@ -148,7 +179,14 @@ describe('recipe detail', () => {
 		const out = html(DetailPage, {
 			data: {
 				recipe,
-				nutrition: { perServing: zero, counted: 0, total: 2, partial: true, rows: [false, false] }
+				nutrition: {
+					perServing: zero,
+					counted: 0,
+					total: 2,
+					partial: true,
+					estimated: 0,
+					rows: [false, false]
+				}
 			}
 		});
 		expect(out).toContain('No nutrition yet');

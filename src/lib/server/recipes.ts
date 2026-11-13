@@ -73,7 +73,9 @@ export const makeRecipeStore = (db: Db) => {
 			ingredients.flatMap((i) => (i.foodId ? [i.foodId] : []))
 		);
 		return ingredients.map((i) =>
-			i.foodId && !visible.has(i.foodId) ? { ...i, foodId: null, grams: null } : i
+			i.foodId && !visible.has(i.foodId)
+				? { ...i, foodId: null, grams: null, gramsSource: null }
+				: i
 		);
 	};
 
@@ -88,7 +90,8 @@ export const makeRecipeStore = (db: Db) => {
 			note: ingredient.note,
 			matchStatus: ingredient.status,
 			foodId: ingredient.foodId,
-			grams: ingredient.grams === null ? null : String(ingredient.grams)
+			grams: ingredient.grams === null ? null : String(ingredient.grams),
+			gramsSource: ingredient.grams === null ? null : ingredient.gramsSource
 		}));
 
 	return {
@@ -149,6 +152,7 @@ export const makeRecipeStore = (db: Db) => {
 					matchStatus: recipeIngredients.matchStatus,
 					foodId: recipeIngredients.foodId,
 					grams: recipeIngredients.grams,
+					gramsSource: recipeIngredients.gramsSource,
 					foodName: foods.name
 				})
 				.from(recipeIngredients)
@@ -174,7 +178,8 @@ export const makeRecipeStore = (db: Db) => {
 					: 'unparsed',
 				foodId: row.foodName === null ? null : row.foodId,
 				foodName: row.foodName,
-				grams: row.grams === null ? null : Number(row.grams)
+				grams: row.grams === null ? null : Number(row.grams),
+				gramsSource: row.grams === null ? null : row.gramsSource
 			}));
 
 			const [planned] = await db

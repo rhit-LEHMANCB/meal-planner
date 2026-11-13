@@ -8,7 +8,13 @@
 		STATUS_LABEL,
 		type IngredientStatus
 	} from '$lib/domain/ingredient-line';
-	import { unitConverts } from '$lib/domain/nutrition';
+	import { formatGrams, formatKcal } from '$lib/domain/format';
+	import {
+		recipeNutrition,
+		unitConverts,
+		type FoodNutrition,
+		type IngredientForNutrition
+	} from '$lib/domain/nutrition';
 	import {
 		emptyRow,
 		lineToRow,
@@ -18,12 +24,25 @@
 		type RowErrors
 	} from '$lib/domain/recipe-form';
 
-	/** A food as food search returns it. */
+	/** A food as food search returns it, with its numbers when the server sends them. */
 	interface FoodOption {
 		id: string;
 		name: string;
 		own: boolean;
 		units: string[];
+		nutrition?: FoodNutrition | null;
+	}
+
+	/** One changed row from "Match with AI". */
+	interface MatchedRow {
+		index: number;
+		foodId: string;
+		foodName: string;
+		foodMatch: 'ai' | null;
+		units: string[];
+		nutrition: FoodNutrition | null;
+		grams: string;
+		gramsSource: 'user' | 'ai' | null;
 	}
 
 	let {
@@ -31,7 +50,11 @@
 		errors = {},
 		error,
 		nutrition = false,
-		foodUnits = {}
+		foodUnits = {},
+		foodNutrition = {},
+		preview = false,
+		servings = '',
+		aiMatch = false
 	}: {
 		/** Starting rows. Re-mount the component (with `{#key}`) to start over from new rows. */
 		rows: IngredientRowValues[];
@@ -43,6 +66,14 @@
 		nutrition?: boolean;
 		/** Units of the foods the starting rows link to, by food id. */
 		foodUnits?: Record<string, string[]>;
+		/** Numbers of the foods the starting rows link to, by food id (for the preview). */
+		foodNutrition?: Record<string, FoodNutrition>;
+		/** Show a per-serving nutrition preview that follows the rows (import review). */
+		preview?: boolean;
+		/** The form's servings field as typed, for the preview. */
+		servings?: string;
+		/** Offer "Match with AI" (edit form). */
+		aiMatch?: boolean;
 	} = $props();
 
 	interface Item extends IngredientRowValues {
@@ -56,6 +87,10 @@
 		suggestion: FoodOption | null;
 		/** The user linked, cleared or dismissed: no more suggestions for this row. */
 		settled: boolean;
+		/** The user cleared the food: AI matching never refills it. */
+		cleared: boolean;
+		/** The linked food's numbers, for the preview; null while unknown. */
+		food: FoodNutrition | null;
 		searchOpen: boolean;
 		query: string;
 		results: FoodOption[] | null;
@@ -69,9 +104,14 @@
 		foodId: row.foodId ?? '',
 		foodName: row.foodName ?? '',
 		grams: row.grams ?? '',
-		units: row.foodId ? (foodUnits[row.foodId] ?? null) : null,
+		units: row.foodId
+			? (foodUnits[row.foodId] ??
+				(foodNutrition[row.foodId] ? ['g', ...Object.keys(foodNutrition[row.foodId].units)] : null))
+			: null,
+		food: row.foodId ? (foodNutrition[row.foodId] ?? null) : null,
 		suggestion: null,
 		settled: Boolean(row.foodId),
+		cleared: false,
 		searchOpen: false,
 		query: '',
 		results: null
@@ -152,7 +192,9 @@
 				if (!r.foodId && !r.settled) r.suggestion = result.suggestions[i] ?? null;
 			});
 			for (const r of linked) {
-				r.units = result.foods.find((f) => f.id === r.foodId)?.units ?? ['g'];
+				const found = result.foods.find((f) => f.id === r.foodId);
+				r.units = found?.units ?? ['g'];
+				r.food ??= found?.nutrition ?? null;
 			}
 		} catch {
 			// Suggestions are a convenience; every row still has Match food.
@@ -164,9 +206,17 @@
 	});
 
 	const link = (row: Item, food: FoodOption) => {
+		// An AI estimate was made for the old food; a weight the user typed is kept.
+		if (food.id !== row.foodId && row.gramsSource === 'ai') {
+			row.grams = '';
+			row.gramsSource = undefined;
+		}
 		row.foodId = food.id;
 		row.foodName = food.name;
 		row.units = food.units;
+		row.food = food.nutrition ?? null;
+		row.foodMatch = undefined;
+		row.cleared = false;
 		row.suggestion = null;
 		row.settled = true;
 		row.searchOpen = false;
@@ -178,9 +228,13 @@
 		row.foodId = '';
 		row.foodName = '';
 		row.grams = '';
+		row.gramsSource = undefined;
+		row.foodMatch = undefined;
 		row.units = null;
+		row.food = null;
 		row.suggestion = null;
 		row.settled = true;
+		row.cleared = true;
 	};
 
 	const dismiss = (row: Item) => {
@@ -206,6 +260,108 @@
 			row.results = [];
 		}
 	};
+
+	// "Match with AI": the form's rows go to the server, which fills only open rows.
+	let matching = $state(false);
+	let matchMessage = $state<string | null>(null);
+	const MATCH_MESSAGES: Record<string, string> = {
+		limit: 'AI matching is unavailable until tomorrow (daily limit reached).',
+		unavailable: 'Foods could not be matched right now. You can link them yourself.',
+		cooldown: 'Please wait a few seconds and try again.'
+	};
+
+	const matchWithAi = async () => {
+		matching = true;
+		matchMessage = null;
+		// What was sent per row: a row the user changes meanwhile keeps their change.
+		const sent = items.map((r) => ({
+			item: r,
+			foodId: r.foodId,
+			grams: r.grams,
+			cleared: r.cleared
+		}));
+		try {
+			const response = await fetch(resolve('/recipes/food-match'), {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({
+					rows: items.map((r) => ({
+						raw: r.raw,
+						amount: r.amount,
+						unit: r.unit,
+						name: r.name,
+						foodId: r.foodId,
+						grams: r.grams,
+						gramsSource: r.gramsSource,
+						cleared: r.cleared
+					}))
+				})
+			});
+			const result = (await response.json().catch(() => null)) as {
+				status: string;
+				rows: MatchedRow[];
+			} | null;
+			if (!result) {
+				matchMessage = MATCH_MESSAGES.unavailable;
+				return;
+			}
+			let applied = 0;
+			for (const m of result.rows) {
+				const before = sent[m.index];
+				const row = before?.item;
+				if (
+					!row ||
+					!items.includes(row) ||
+					row.foodId !== before.foodId ||
+					row.grams !== before.grams ||
+					row.cleared !== before.cleared
+				) {
+					continue;
+				}
+				applied++;
+				if (m.foodId !== row.foodId) {
+					row.foodId = m.foodId;
+					row.foodName = m.foodName;
+					row.foodMatch = m.foodMatch ?? undefined;
+					row.suggestion = null;
+					row.settled = true;
+				}
+				row.units = m.units;
+				row.food = m.nutrition;
+				row.grams = m.grams;
+				row.gramsSource = m.gramsSource ?? undefined;
+			}
+			matchMessage =
+				MATCH_MESSAGES[result.status] ??
+				(applied > 0
+					? `Matched ${applied} ${applied === 1 ? 'row' : 'rows'}. Check them, then save.`
+					: 'Nothing new to match.');
+		} catch {
+			matchMessage = MATCH_MESSAGES.unavailable;
+		} finally {
+			matching = false;
+		}
+	};
+
+	/** The preview, from the rows' linked foods and weights and the servings field. */
+	const previewed = $derived.by(() => {
+		if (!preview) return null;
+		const rowsForNutrition: IngredientForNutrition[] = items
+			.filter((r) => !isBlank(r))
+			.map((r) => ({
+				name: r.name,
+				quantity: parseAmount(r.amount) ?? null,
+				unit: r.unit.trim() || null,
+				foodId: r.foodId || null,
+				grams: r.grams.trim() === '' ? null : Number(r.grams),
+				gramsSource: r.gramsSource ?? null
+			}));
+		const foods = new Map(
+			items.flatMap((r) => (r.foodId && r.food ? [[r.foodId, r.food] as const] : []))
+		);
+		const count = /^\d+$/.test(servings.trim()) ? Number(servings.trim()) : 0;
+		return { servings: count, ...recipeNutrition(rowsForNutrition, foods, Math.max(count, 1)) };
+	});
 
 	/** A changed name gets a fresh suggestion unless the user already chose. */
 	const renamed = (row: Item) => {
@@ -330,6 +486,12 @@
 				{#if nutrition}
 					<input type="hidden" name="ingredientFoodId" value={row.foodId} />
 					<input type="hidden" name="ingredientFoodName" value={row.foodName} />
+					<input type="hidden" name="ingredientFoodMatch" value={row.foodMatch ?? ''} />
+					<input
+						type="hidden"
+						name="ingredientGramsSource"
+						value={needsGrams(row) ? (row.gramsSource ?? '') : ''}
+					/>
 					{#if !needsGrams(row)}<input type="hidden" name="ingredientGrams" value="" />{/if}
 					{#if row.foodId || row.suggestion || !isBlank(row)}
 						<div
@@ -338,6 +500,12 @@
 						>
 							{#if row.foodId}
 								<span class="min-w-0">Food: <strong>{row.foodName}</strong></span>
+								{#if row.foodMatch === 'ai'}
+									<span
+										class="rounded-full bg-food-tint px-2.5 py-1 text-xs font-bold text-food-ink"
+										data-ai-match>AI match</span
+									>
+								{/if}
 								<button
 									type="button"
 									class="btn btn-secondary min-h-11 px-3"
@@ -388,21 +556,28 @@
 					{/if}
 					{#if needsGrams(row)}
 						<div class="col-span-2 flex flex-wrap items-center gap-2 xl:col-span-6">
-							<label class="text-sm font-bold" for="grams-{row.id}">About how many grams?</label>
+							<label class="text-sm font-bold" for="grams-{row.id}"
+								>{row.gramsSource === 'ai' ? 'AI estimate (g)' : 'About how many grams?'}</label
+							>
 							<input
 								id="grams-{row.id}"
 								name="ingredientGrams"
 								class="input min-h-11 w-28 px-2"
 								inputmode="decimal"
 								bind:value={row.grams}
-								oninput={() => delete row.errors.grams}
+								oninput={() => {
+									delete row.errors.grams;
+									row.gramsSource = 'user';
+								}}
 								aria-invalid={row.errors.grams ? 'true' : undefined}
 								aria-describedby="grams-help-{row.id}"
 							/>
 							<span id="grams-help-{row.id}" class="hint">
-								{row.grams.trim()
-									? 'Used for nutrition, since this amount does not convert for the food.'
-									: 'This amount does not convert for the food, so it adds no nutrition until you enter a weight.'}
+								{row.gramsSource === 'ai' && row.grams.trim()
+									? `AI estimate: ${row.grams} g. Change it if you know better.`
+									: row.grams.trim()
+										? 'Used for nutrition, since this amount does not convert for the food.'
+										: 'This amount does not convert for the food, so it adds no nutrition until you enter a weight.'}
 							</span>
 						</div>
 					{/if}
@@ -466,10 +641,55 @@
 		{/each}
 	</ol>
 
-	<div>
+	<div class="flex flex-wrap items-center gap-2">
 		<button type="button" class="btn btn-secondary min-h-11" onclick={addRow}>Add ingredient</button
 		>
+		{#if nutrition && aiMatch}
+			<button
+				type="button"
+				class="btn btn-secondary min-h-11"
+				disabled={matching}
+				onclick={matchWithAi}>{matching ? 'Matching…' : 'Match with AI'}</button
+			>
+		{/if}
+		{#if matchMessage}<span class="text-sm text-muted" role="status">{matchMessage}</span>{/if}
 	</div>
+
+	{#if previewed}
+		<section
+			aria-label="Nutrition preview"
+			class="flex flex-col gap-2 rounded-xl border border-line bg-white p-4"
+			data-preview
+		>
+			<h3 class="text-sm font-bold text-muted">Nutrition per serving (preview)</h3>
+			{#if previewed.servings === 0}
+				<p class="text-sm text-muted" data-preview="needs-servings">
+					Add servings to see nutrition per serving.
+				</p>
+			{:else if previewed.counted === 0}
+				<p class="text-sm text-muted">No linked foods yet, so there is no nutrition to show.</p>
+			{:else}
+				<dl class="flex flex-wrap gap-x-6 gap-y-1">
+					{#each [['Calories', `${formatKcal(previewed.perServing.kcal)} kcal`], ['Protein', formatGrams(previewed.perServing.proteinG)], ['Carbs', formatGrams(previewed.perServing.carbsG)], ['Fat', formatGrams(previewed.perServing.fatG)]] as [label, value] (label)}
+						<div class="flex gap-1.5 text-sm">
+							<dt class="text-muted">{label}</dt>
+							<dd class="font-bold" data-preview-value={label}>{value}</dd>
+						</div>
+					{/each}
+				</dl>
+				{#if previewed.total - previewed.counted > 0}
+					<p class="text-[13px] text-[#7a4a06]">
+						{`${previewed.total - previewed.counted} of ${previewed.total} ingredients have no nutrition.`}
+					</p>
+				{/if}
+				{#if previewed.estimated > 0}
+					<p class="text-[13px] text-muted">
+						{`Includes ${previewed.estimated} AI-estimated ${previewed.estimated === 1 ? 'weight' : 'weights'}.`}
+					</p>
+				{/if}
+			{/if}
+		</section>
+	{/if}
 
 	<div class="flex flex-col gap-1.5 rounded-xl bg-ground p-4">
 		<label class="label" for="pastedLines">Paste ingredient lines</label>

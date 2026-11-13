@@ -121,6 +121,21 @@ describe('recipeNutrition', () => {
 		expect(result).toMatchObject({ counted: 1, total: 3, partial: true });
 	});
 
+	it('counts rows that use an AI weight estimate', () => {
+		const result = recipeNutrition(
+			[
+				row({ quantity: 1, unit: 'bunch', foodId: 'rice', grams: 60, gramsSource: 'ai' }),
+				row({ quantity: 1, unit: 'bunch', foodId: 'rice', grams: 40, gramsSource: 'user' }),
+				// Converts by weight, so the stored estimate is not what counts.
+				row({ quantity: 100, unit: 'g', foodId: 'rice', grams: 90, gramsSource: 'ai' })
+			],
+			foods,
+			1
+		);
+		expect(result).toMatchObject({ counted: 3, estimated: 1 });
+		expect(result.perServing.kcal).toBeCloseTo(130 * 2, 5);
+	});
+
 	it('ignores rows without a name', () => {
 		expect(recipeNutrition([row({ name: ' ' })], foods, 1)).toMatchObject({ total: 0 });
 	});
@@ -142,7 +157,8 @@ describe('entries and days', () => {
 		perServing: { kcal, proteinG: 0, carbsG: 0, fatG: 0 },
 		counted: 1,
 		total: 1,
-		partial
+		partial,
+		estimated: 0
 	});
 	const recipes = new Map([
 		['a', recipe(230)],

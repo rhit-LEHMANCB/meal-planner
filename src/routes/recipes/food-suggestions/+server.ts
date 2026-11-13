@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { requireUserId } from '$lib/server/auth';
 import { SUGGEST_MAX } from '$lib/domain/food-match';
-import { getFoodStore } from '$lib/server/foods';
+import { getFoodStore, withNutrition } from '$lib/server/foods';
 
 // Under /recipes, not the public /api/*: only signed-in users get suggestions, from foods they can
 // see. `name` = ingredient names to suggest a food for; `id` = linked foods whose units are needed.
@@ -17,6 +17,12 @@ export const GET = async ({ locals, url }) => {
 		store.suggest(userId, names),
 		store.getMany(userId, ids)
 	]);
-	// `foods` gives the units of rows that are already linked, to know whether they need grams.
-	return json({ suggestions, foods });
+	// Numbers ride along for the nutrition preview; `foods` also gives linked rows their units.
+	const found = suggestions.flatMap((s) => (s ? [s] : []));
+	const withNumbers = await withNutrition(store, userId, [...found, ...foods]);
+	const numbered = (id: string) => withNumbers.find((f) => f.id === id) ?? null;
+	return json({
+		suggestions: suggestions.map((s) => (s ? numbered(s.id) : null)),
+		foods: foods.map((f) => numbered(f.id))
+	});
 };
