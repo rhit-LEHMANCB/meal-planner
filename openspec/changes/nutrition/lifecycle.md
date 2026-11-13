@@ -1,9 +1,9 @@
 # Lifecycle: nutrition
 
 - Branch: `claude/dev-lifecycle-nutrition-3caa7b`
-- Stage: 5 Ship to develop (Gate B fix)
+- Stage: 7 Production PR (Gate B)
 - Review round: 2 of 3
-- QA cycle: 1 of 3
+- QA cycle: 2 of 3
 - Started: 2026-11-12
 
 ## Interview summary
@@ -99,22 +99,29 @@ QA cycle 1 of 3, 2026-11-13T01:57Z, independent Sonnet QA agent, deployed commit
   5. Nothing says the default goals are defaults until they are saved.
 - QA data: all `qa-` recipes, plan and log entries were removed. Custom foods `qa-nut-*` (5) and a goals row for the QA user remain, because custom foods cannot be deleted in the UI (#32). The setup also removed older `qa-*` recipes of the QA user left by other suites.
 
+QA cycle 2 of 3, 2026-11-13 03:10 UTC, a fresh independent Sonnet QA agent, deployed commit `afc6b10` (with the caption fix from PR #48). **Result: PASS**, 0 failing scenarios. It re-ran every changed scenario and added `60-layout.spec.ts`. At 1440 and 390 px nothing overlaps the "Calories by day" heading, the caption sits in a clipped 1 px wrapper, the page has no horizontal scroll, and the Today card and plan day totals read "· partial" on one line. Evidence: `qa-evidence/nutrition` commit db5ba93 (59 screenshots). New observation (low): on phones the chart's Fri to Sun bars sit in the chart's own sideways scroll area (min width 560 px); the page itself does not scroll.
+
+## Gate B
+
+Production PR https://github.com/rhit-LEHMANCB/meal-planner/pull/47 (develop to production), opened 2026-11-13 and updated after QA cycle 2. Waiting for a human to verify and merge.
+
 ## Gate B defect (2026-11-13)
 
 The human found at Gate B that the chart's screen-reader table caption ("Calories by day, week of …") renders on top of the "Calories by day" heading. Cause: `sr-only` was on the `<table>`, but a table caption is laid out outside the table box, so it was not clipped. This was also the ~15 px sideways scroll QA noted at 390 px. Fix on branch `fix/nutrition-chart-caption`: wrap the table in an `sr-only` div. Also fixed the "kcal· partial" spacing on plan day totals (QA observation 2). Classified `app bug`: stages 3 to 5 with one review round, then QA cycle 2.
 
-
+## Verification checklist for the human
 
 Ranked by risk. Production-only risks are listed first.
 
-1. **Production migration (high).** After merging to `production`, check that the `Run database migrations` workflow on `production` succeeds. It applies 0005 to 0007, including the ~2 MB USDA insert. Then check that `/api/health` is ok and that food search on prod finds "Broccoli, raw". No new secrets or env vars are needed.
-2. **Real recipe import, then link foods (high).** Import a real recipe on dev. Check that the review form shows no nutrition or food links. Save it, open Edit, accept the suggestions, and check that the per-serving kcal is plausible and the partial note appears for unlinked rows.
-3. **Suggestion quality on messy lines (high).** On /recipes/new, paste about 10 real ingredient lines (garlic cloves, a can of tomatoes, salt to taste, a bunch of parsley). Judge the suggestions, and check that grams are asked for where needed.
-4. **Accuracy against labels (medium-high).** Plan and log egg, rice, chicken breast, banana and olive oil in grams and in cup, tbsp or each. Compare with package labels.
-5. **Phone use (medium).** On a real phone, use /nutrition and /plan: log, delete, scroll the chart. Note the known ~15 px sideways scroll on /nutrition.
-6. **Time zone near midnight (medium).** In the evening, on a device set to a non-UTC zone, check that /nutrition shows the local today and that logging lands on the intended day.
-7. **Screen reader and keyboard (medium).** Check the calories table, the progress bars, the goal errors and a keyboard-only food log on /nutrition.
-8. **Search over the full seed (low-medium).** Search chicken, milk, cheddar, oats and brand-like names. Check the ranking and look for odd units.
+1. **Chart heading and labels on a real phone (high, last gate's defect).** On iOS Safari and Android Chrome, at the largest text size, check that nothing overlaps "Calories by day" and that the page does not scroll sideways.
+2. **Production migration (high).** After merging to `production`, check that the `Run database migrations` workflow on `production` succeeds. It applies 0005 to 0007, including the ~2 MB USDA insert. Then check that `/api/health` is ok and that food search on prod finds "Broccoli, raw". No new secrets or env vars are needed.
+3. **Real recipe import, then link foods (high).** Import a real recipe on dev. Check that the review form shows no nutrition or food links. Save it, open Edit, accept the suggestions, and check that the per-serving kcal is plausible and the partial note appears for unlinked rows.
+4. **Suggestion quality on messy lines (high).** On /recipes/new, paste about 10 real ingredient lines (garlic cloves, a can of tomatoes, salt to taste, a bunch of parsley). Judge the suggestions, and check that grams are asked for where needed.
+5. **Accuracy against labels (medium-high).** Plan and log egg, rice, chicken breast, banana and olive oil in grams and in cup, tbsp or each. Compare with package labels.
+6. **Phone use (medium).** On a real phone, use /nutrition and /plan: log, delete, scroll the chart. The ~15 px sideways scroll is fixed (QA cycle 2).
+7. **Time zone near midnight (medium).** In the evening, on a device set to a non-UTC zone, check that /nutrition shows the local today and that logging lands on the intended day.
+8. **Screen reader and keyboard (medium).** Check the calories table, the progress bars, the goal errors and a keyboard-only food log on /nutrition.
+9. **Search over the full seed (low-medium).** Search chicken, milk, cheddar, oats and brand-like names. Check the ranking and look for odd units.
 
 ## Halted
 
