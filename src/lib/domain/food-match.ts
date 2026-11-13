@@ -1,5 +1,8 @@
 // Turns ingredient names into food searches. Pure: used by food search and suggestions.
 
+/** At most this many ingredient names per suggestion request. */
+export const SUGGEST_MAX = 50;
+
 /** "eggs" → "egg", "tomatoes" → "tomato", "berries" → "berr": a stem that still matches by substring. */
 export const searchStem = (word: string): string => {
 	const w = word.toLowerCase();

@@ -60,7 +60,7 @@ describe.skipIf(!url)('food store (Neon dev branch)', () => {
 		await db.insert(foodUnits).values({ foodId: shared.id, unit: 'each', grams: '182' });
 		const own = await store.create(bob, { name: `Apple sauce ${run}`, ...per100 });
 
-		const found = await store.search(bob, `apple`);
+		const found = await store.search(bob, `apple ${run}`);
 		const mine = found.filter((f) => f.name.includes(run));
 		expect(mine.map((f) => f.id)).toEqual([own, shared.id]);
 		expect(mine[1]).toMatchObject({ own: false, units: ['g', 'each'] });
@@ -76,6 +76,42 @@ describe.skipIf(!url)('food store (Neon dev branch)', () => {
 			)
 		);
 		expect(await store.search(alice, `bulk ${run}`)).toHaveLength(SEARCH_LIMIT);
+	});
+
+	it('matches plurals and ranks names that start with the first word (USDA seed)', async () => {
+		const eggs = await store.search(alice, 'eggs');
+		expect(eggs.map((f) => f.name)).toContain('Egg, whole, raw, fresh');
+		const rice = await store.search(alice, 'rice');
+		expect(rice[0].name.toLowerCase().startsWith('rice')).toBe(true);
+		const tomatoes = await store.search(alice, 'tomatoes raw');
+		expect(tomatoes.some((f) => f.name.startsWith('Tomatoes, red, ripe, raw'))).toBe(true);
+	});
+
+	it('suggests the best food for ingredient names', async () => {
+		const [onion, nothing, blank] = await store.suggest(alice, [
+			'1 yellow onion, diced',
+			`zzz ${run}`,
+			'chopped'
+		]);
+		expect(onion?.name.toLowerCase()).toContain('onion');
+		expect(nothing).toBeNull();
+		expect(blank).toBeNull();
+	});
+
+	it('returns nutrition and unit weights only for visible foods', async () => {
+		const own = await store.create(alice, { name: `Nutri ${run}`, ...per100 });
+		const [broccoli] = await store.search(alice, 'broccoli raw');
+		const map = await store.nutritionFor(alice, [own, broccoli.id, 'not-a-uuid']);
+		expect(map.get(own)).toEqual({
+			id: own,
+			kcalPer100g: 97,
+			proteinPer100g: 9,
+			carbsPer100g: 4,
+			fatPer100g: 5,
+			units: {}
+		});
+		expect(map.get(broccoli.id)?.kcalPer100g).toBeGreaterThan(0);
+		expect((await store.nutritionFor(bob, [own])).size).toBe(0);
 	});
 
 	it('returns nothing for a blank query or a malformed id', async () => {

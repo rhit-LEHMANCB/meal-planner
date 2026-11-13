@@ -5,7 +5,8 @@ const store = vi.hoisted(() => ({
 	get: vi.fn(),
 	create: vi.fn(),
 	update: vi.fn(),
-	remove: vi.fn()
+	remove: vi.fn(),
+	foodErrors: vi.fn()
 }));
 
 vi.mock('$env/dynamic/private', () => ({ env: {} }));
@@ -45,7 +46,10 @@ const valid = { title: 'Chili', servings: '4', steps: 'Cook.' };
 // The routes only use these event fields; the cast keeps the tests free of SvelteKit's full event type.
 const event = <T>(fields: Record<string, unknown>) => fields as unknown as T;
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+	vi.resetAllMocks();
+	store.foodErrors.mockResolvedValue({});
+});
 
 describe('recipe list', () => {
 	it('lists only the signed-in user and searches with their id', async () => {
@@ -158,7 +162,9 @@ describe('create', () => {
 						unit: 'can',
 						name: 'beans',
 						note: 'drained',
-						status: 'parsed'
+						status: 'parsed',
+						foodId: null,
+						grams: null
 					}
 				]
 			})
@@ -234,7 +240,7 @@ describe('edit and delete by the owner', () => {
 			]
 		});
 		const data = await editLoad(event({ locals: locals(), params: { id: 'r1' } }));
-		expect(data.values.ingredients).toEqual([
+		expect(data.values.ingredients).toMatchObject([
 			{
 				raw: '2 tbsp chili powder, divided',
 				amount: '2',
@@ -271,5 +277,21 @@ describe('edit and delete by the owner', () => {
 		store.get.mockResolvedValue({ id: 'r1', title: 'Chili', ingredients: ['a', 'b'] });
 		const data = await showLoad(event({ locals: locals(), params: { id: 'r1' } }));
 		expect(data.recipe.ingredients).toEqual(['a', 'b']);
+	});
+});
+
+describe('food links', () => {
+	it('refuses a save naming a food the user cannot see, and saves nothing', async () => {
+		store.foodErrors.mockResolvedValue({
+			0: { food: 'That food was not found. Pick another one.' }
+		});
+		const result = await newActions.default(
+			event({ request: formRequest(valid), locals: locals() })
+		);
+		expect(result).toMatchObject({
+			status: 400,
+			data: { errors: { rows: { 0: { food: 'That food was not found. Pick another one.' } } } }
+		});
+		expect(store.create).not.toHaveBeenCalled();
 	});
 });

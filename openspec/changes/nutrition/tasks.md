@@ -15,10 +15,10 @@
 
 ## 3. Foods and recipes on the server
 
-- [ ] 3.1 `FoodStore.search`: stem each word and rank own first, name-starts-with-first-word, shorter, name. Add `nutritionFor(userId, ids)` returning per-100 g values and unit grams for visible foods. Verify `foods.integration.spec.ts` on dev: plural "eggs" finds an egg food, "rice" ranking, another user's custom food never returned by `nutritionFor`.
-- [ ] 3.2 `recipe-form.ts`: parse `ingredientFoodId` and `ingredientGrams` per row (uuid or empty; 0 < grams ≤ 100,000, optional) with row errors. Verify `recipe-form.spec.ts`.
-- [ ] 3.3 `RecipeStore`: save `food_id` and `grams`; before the write batch, check all linked foods are visible to the user (one query) and return a row-level not-found otherwise; return them from `get`. Verify `recipes.integration.spec.ts`: link saved and reloaded, cleared link, another user's custom food refused and nothing written.
-- [ ] 3.4 `GET /recipes/food-suggestions?names=` (signed-in only, at most 50 names, each through `suggestQuery` and `search`, top hit or null). Verify a route spec for signed-out (redirect/401), the cap, and the response shape.
+- [x] 3.1 `FoodStore.search`: stem each word and rank own first, name-starts-with-first-word, shorter, name. Add `nutritionFor(userId, ids)` returning per-100 g values and unit grams for visible foods. Verify `foods.integration.spec.ts` on dev: plural "eggs" finds an egg food, "rice" ranking, another user's custom food never returned by `nutritionFor`.
+- [x] 3.2 `recipe-form.ts`: parse `ingredientFoodId` and `ingredientGrams` per row (uuid or empty; 0 < grams ≤ 100,000, optional) with row errors. Verify `recipe-form.spec.ts`.
+- [x] 3.3 `RecipeStore`: save `food_id` and `grams`; before the write batch, check all linked foods are visible to the user (one query) and return a row-level not-found otherwise; return them from `get`. Verify `recipes.integration.spec.ts`: link saved and reloaded, cleared link, another user's custom food refused and nothing written.
+- [x] 3.4 `GET /recipes/food-suggestions?names=` (signed-in only, at most 50 names, each through `suggestQuery` and `search`, top hit or null). Verify a route spec for signed-out (redirect/401), the cap, and the response shape.
 
 ## 4. Recipe forms and detail page
 

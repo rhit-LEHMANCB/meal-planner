@@ -15,7 +15,16 @@ export const actions = {
 		const result = parseRecipeForm(await request.formData());
 		if (!result.ok) return fail(400, { errors: result.errors, values: result.values });
 
-		const saved = await getRecipeStore().update(userId, params.id, result.value);
+		const store = getRecipeStore();
+		const rows = await store.foodErrors(userId, result.value);
+		if (Object.keys(rows).length > 0) {
+			return fail(400, {
+				errors: { rows, ingredients: 'Fix the highlighted ingredients.' },
+				values: result.values
+			});
+		}
+
+		const saved = await store.update(userId, params.id, result.value);
 		if (!saved) throw error(404, 'Recipe not found');
 		throw redirect(303, `/recipes/${params.id}`);
 	}
