@@ -206,6 +206,11 @@
 	});
 
 	const link = (row: Item, food: FoodOption) => {
+		// An AI estimate was made for the old food; a weight the user typed is kept.
+		if (food.id !== row.foodId && row.gramsSource === 'ai') {
+			row.grams = '';
+			row.gramsSource = undefined;
+		}
 		row.foodId = food.id;
 		row.foodName = food.name;
 		row.units = food.units;
@@ -268,6 +273,13 @@
 	const matchWithAi = async () => {
 		matching = true;
 		matchMessage = null;
+		// What was sent per row: a row the user changes meanwhile keeps their change.
+		const sent = items.map((r) => ({
+			item: r,
+			foodId: r.foodId,
+			grams: r.grams,
+			cleared: r.cleared
+		}));
 		try {
 			const response = await fetch(resolve('/recipes/food-match'), {
 				method: 'POST',
@@ -293,9 +305,20 @@
 				matchMessage = MATCH_MESSAGES.unavailable;
 				return;
 			}
+			let applied = 0;
 			for (const m of result.rows) {
-				const row = items[m.index];
-				if (!row) continue;
+				const before = sent[m.index];
+				const row = before?.item;
+				if (
+					!row ||
+					!items.includes(row) ||
+					row.foodId !== before.foodId ||
+					row.grams !== before.grams ||
+					row.cleared !== before.cleared
+				) {
+					continue;
+				}
+				applied++;
 				if (m.foodId !== row.foodId) {
 					row.foodId = m.foodId;
 					row.foodName = m.foodName;
@@ -310,8 +333,8 @@
 			}
 			matchMessage =
 				MATCH_MESSAGES[result.status] ??
-				(result.rows.length > 0
-					? `Matched ${result.rows.length} ${result.rows.length === 1 ? 'row' : 'rows'}. Check them, then save.`
+				(applied > 0
+					? `Matched ${applied} ${applied === 1 ? 'row' : 'rows'}. Check them, then save.`
 					: 'Nothing new to match.');
 		} catch {
 			matchMessage = MATCH_MESSAGES.unavailable;

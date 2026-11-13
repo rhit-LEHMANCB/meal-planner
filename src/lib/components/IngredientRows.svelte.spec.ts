@@ -345,6 +345,80 @@ describe('IngredientRows with AI matches', () => {
 		expect(posted(screen, 'ingredientFoodId')[0]).toBe('');
 	});
 
+	it('drops an AI estimate when the user picks another food', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async (url: string) =>
+				url.includes('/plan/foods')
+					? new Response(
+							JSON.stringify({
+								foods: [{ id: 'f-pars', name: 'Parsley, fresh', own: false, units: ['g'] }]
+							})
+						)
+					: new Response(JSON.stringify({ suggestions: [], foods: [] }))
+			)
+		);
+		const screen = render(IngredientRows, { rows: [aiRows[0]], nutrition: true });
+		await screen.getByRole('button', { name: 'Change food, row 1' }).click();
+		await screen.getByRole('button', { name: 'Search' }).click();
+		await screen.getByRole('button', { name: 'Parsley, fresh' }).click();
+		expect(posted(screen, 'ingredientFoodId')[0]).toBe('f-pars');
+		await expect.element(screen.getByLabelText('About how many grams?')).toHaveValue('');
+		expect(posted(screen, 'ingredientGramsSource')[0]).toBe('');
+	});
+
+	it('keeps a row the user changed while Match with AI was running', async () => {
+		let release: (r: Response) => void = () => {};
+		vi.stubGlobal(
+			'fetch',
+			vi.fn((url: string) =>
+				url.includes('food-match')
+					? new Promise<Response>((r) => (release = r))
+					: Promise.resolve(new Response(JSON.stringify({ suggestions: [null], foods: [] })))
+			)
+		);
+		const screen = render(IngredientRows, {
+			rows: [
+				{
+					raw: '',
+					amount: '1',
+					unit: 'bunch',
+					name: 'parsley',
+					note: '',
+					foodId: 'f-p',
+					foodName: 'Parsley'
+				}
+			],
+			nutrition: true,
+			aiMatch: true,
+			foodUnits: { 'f-p': ['g'] }
+		});
+		await screen.getByRole('button', { name: 'Match with AI' }).click();
+		await screen.getByLabelText('About how many grams?').fill('50');
+		release(
+			new Response(
+				JSON.stringify({
+					status: 'matched',
+					rows: [
+						{
+							index: 0,
+							foodId: 'f-p',
+							foodName: 'Parsley',
+							foodMatch: null,
+							units: ['g'],
+							nutrition: null,
+							grams: '60',
+							gramsSource: 'ai'
+						}
+					]
+				})
+			)
+		);
+		await expect.element(screen.getByText('Nothing new to match.')).toBeVisible();
+		await expect.element(screen.getByLabelText('About how many grams?')).toHaveValue('50');
+		expect(posted(screen, 'ingredientGramsSource')[0]).toBe('user');
+	});
+
 	it('offers no Match with AI button unless asked', () => {
 		quietFetch();
 		const screen = render(IngredientRows, { rows: aiRows, nutrition: true });

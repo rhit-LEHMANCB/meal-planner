@@ -33,10 +33,6 @@ export const POST = async ({ locals, request }) => {
 	if (!parsed.success) throw error(400, 'Bad request');
 	const rows = parsed.data.rows;
 
-	const usage = getImportUsage();
-	if (!(await usage.startImport(userId)))
-		return json({ status: 'cooldown', rows: [] }, { status: 429 });
-
 	const foods = getFoodStore();
 	// Only foods the user can see count as linked; the client's ids are not trusted.
 	const linked = new Map(
@@ -69,6 +65,12 @@ export const POST = async ({ locals, request }) => {
 		if (row.foodId || row.cleared) return [];
 		return [base];
 	});
+
+	// Nothing to match: answer without using the 10 s spacing or a matching run.
+	if (input.length === 0) return json({ status: 'none', rows: [] });
+	const usage = getImportUsage();
+	if (!(await usage.startImport(userId)))
+		return json({ status: 'cooldown', rows: [] }, { status: 429 });
 
 	const matcher = makeFoodMatcher({ foods, usage });
 	const outcome = await matcher.match(userId, input);

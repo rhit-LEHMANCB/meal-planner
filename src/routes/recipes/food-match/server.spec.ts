@@ -66,6 +66,16 @@ describe('POST /recipes/food-match', () => {
 		});
 	});
 
+	it('answers "none" without using the spacing when no row needs matching', async () => {
+		foods.getMany.mockResolvedValue([cilantro]);
+		const res = await call({
+			rows: [row({ foodId: 'f-cil', grams: '40' }), row({ cleared: true })]
+		});
+		expect(await res.json()).toEqual({ status: 'none', rows: [] });
+		expect(usage.startImport).not.toHaveBeenCalled();
+		expect(match).not.toHaveBeenCalled();
+	});
+
 	it('keeps the 10 second spacing', async () => {
 		usage.startImport.mockResolvedValue(false);
 		const res = await call({ rows: [row()] });
@@ -92,8 +102,10 @@ describe('POST /recipes/food-match', () => {
 
 	it('treats a food the user cannot see as unlinked', async () => {
 		foods.getMany.mockResolvedValue([]);
-		await call({ rows: [row({ foodId: 'someone-elses' })] });
-		expect(match.mock.calls[0][1]).toEqual([]);
+		const res = await call({ rows: [row({ foodId: 'someone-elses' })] });
+		// Neither offered for matching (it has an id) nor trusted as a link.
+		expect(await res.json()).toEqual({ status: 'none', rows: [] });
+		expect(match).not.toHaveBeenCalled();
 	});
 
 	it('returns only rows that changed, with numbers for the preview', async () => {

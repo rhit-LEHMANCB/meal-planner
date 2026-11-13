@@ -146,7 +146,7 @@ export const makeFoodMatcher = (deps: FoodMatcherDeps) => ({
 			response = await (deps.client ?? getClient()).messages.create(
 				{
 					model: MODEL,
-					max_tokens: 4096,
+					max_tokens: 8192,
 					system: SYSTEM,
 					tools: [TOOL],
 					tool_choice: { type: 'tool', name: TOOL.name },

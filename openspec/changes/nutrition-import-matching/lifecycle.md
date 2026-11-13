@@ -3,8 +3,8 @@
 (Renamed from `import-food-matching` at Gate A so the archive workflow, which works alphabetically, archives `nutrition` first: this change modifies a `recipes` requirement that `nutrition` adds.)
 
 - Branch: `feature/import-food-matching`
-- Stage: 4 Review
-- Review round: 0 of 3
+- Stage: 5 Ship to develop
+- Review round: 1 of 3
 - QA cycle: 0 of 3
 - Started: 2026-11-13
 
@@ -88,11 +88,15 @@ Stage 3 done 2026-11-13: all tasks ticked. Migration 0008 applied to Neon `dev`.
 
 ## Review rounds
 
-(none yet; one line per round: blockers, majors, fixed, rejected with reason)
+- Round 1 (2026-11-13, fresh Sonnet reviewer): 0 blockers, 0 majors, 7 minors, 2 nits. Exit condition met. Fixed anyway: Match with AI no longer overwrites rows edited while it ran; picking another food drops an AI estimate made for the old one; nothing-to-match answers `none` before using the 10 s spacing; `max_tokens` 8192; the suggestions route reuses `withNutrition`.
 
 ## Deferred findings
 
-(minors, nits and known gaps to turn into issues at wrap-up)
+- Candidate searches (up to 100) run before the cap check; reserve first or check read-only (review minor).
+- `reserveMatch` reports a missing `import_usage` row as the cap; make it an upsert (review minor; both callers call `startImport` first).
+- Parse (45 s) plus match (30 s) run one after the other; lower the match timeout if the hosting request timeout is under ~80 s.
+- The 10 s spacing is shared by imports and Match with AI, so pressing Match with AI right after an import waits.
+- `gramsSource` is client-posted, so a user can mislabel their own rows (accepted in design).
 
 ## QA report
 

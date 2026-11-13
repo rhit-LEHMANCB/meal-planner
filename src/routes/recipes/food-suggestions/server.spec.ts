@@ -4,7 +4,9 @@ const suggest = vi.fn();
 const getMany = vi.fn();
 const nutritionFor = vi.fn();
 vi.mock('$lib/server/foods', () => ({
-	getFoodStore: () => ({ suggest, getMany, nutritionFor })
+	getFoodStore: () => ({ suggest, getMany, nutritionFor }),
+	withNutrition: async (_store: unknown, _user: string, options: { id: string }[]) =>
+		options.map((o) => ({ ...o, nutrition: null }))
 }));
 
 import { SUGGEST_MAX } from '$lib/domain/food-match';
