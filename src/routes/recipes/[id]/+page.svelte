@@ -78,8 +78,7 @@
 				</dl>
 				{#if missing > 0}
 					<p class="text-sm text-[#7a4a06]" data-nutrition="partial">
-						Partial: {missing} of {nutrition.total}
-						{nutrition.total === 1 ? 'ingredient has' : 'ingredients have'} no nutrition.
+						{`Partial: ${missing} of ${nutrition.total} ${nutrition.total === 1 ? 'ingredient has' : 'ingredients have'} no nutrition.`}
 					</p>
 				{/if}
 			{/if}
